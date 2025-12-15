@@ -25,7 +25,7 @@ const Dashboard = () => {
 
     const fetchHistory = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/scan-history');
+            const res = await axios.get('/api/scan-history');
             if (Array.isArray(res.data)) {
                 setScanHistory(res.data);
             }
@@ -36,7 +36,7 @@ const Dashboard = () => {
 
     const handleSimulation = async (nfcData) => {
         try {
-            await axios.post('http://localhost:5000/api/check-nfc', { nfcData });
+            await axios.post('/api/check-nfc', { nfcData });
             // Hemen güncelle
             fetchHistory();
         } catch (error) {
