@@ -22,13 +22,13 @@ if (!FORCE_OFFLINE) {
     mongoose.connect(
         'mongodb://nfcuser:StrongPassword123@127.0.0.1:27017/nfcAttendanceDB?authSource=nfcAttendanceDB'
     ).then(() => {
-        console.log('MongoDB qoşuldu');
+        console.log('✅ MongoDB qoşuldu');
     }).catch((err) => {
-        console.log('MongoDB xətası – Offline moda keçildi');
+        console.log('⚠️ MongoDB xətası – Offline moda keçildi');
         console.error(err.message);
     });
 } else {
-    console.log('OFFLINE MOD AKTİV');
+    console.log('⚠️ OFFLINE MOD AKTİV');
 }
 
 /* ================= LOGIN ================= */
@@ -36,9 +36,11 @@ const ADMIN_USER = { username: 'elxan', password: '1234' };
 
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
+
     if (username === ADMIN_USER.username && password === ADMIN_USER.password) {
         return res.json({ success: true });
     }
+
     res.status(401).json({ success: false });
 });
 
@@ -47,6 +49,12 @@ let scanHistory = [];
 let waitingForNfc = false;
 let lastNfcUid = null;
 
+/* ================= DEBUG (POST ÇALIŞIYOR MU?) ================= */
+app.post('/api/_debug/post-test', (req, res) => {
+    console.log('🧪 DEBUG POST OK', req.body);
+    res.json({ ok: true, body: req.body || null });
+});
+
 /* ================= NFC START WAIT ================= */
 app.post('/api/nfc/start-wait', (req, res) => {
     waitingForNfc = true;
@@ -54,7 +62,7 @@ app.post('/api/nfc/start-wait', (req, res) => {
 
     console.log('📡 NFC BEKLEME MODU AKTİF');
 
-    res.status(200).json({
+    res.json({
         success: true,
         waitingForNfc: true
     });
@@ -63,11 +71,15 @@ app.post('/api/nfc/start-wait', (req, res) => {
 /* ================= NFC CHECK ================= */
 app.post('/api/check-nfc', async (req, res) => {
     const { nfcData } = req.body;
+
     if (!nfcData) {
-        return res.status(400).json({ found: false, message: 'NFC verisi yok' });
+        return res.status(400).json({
+            found: false,
+            message: 'NFC verisi yoxdur'
+        });
     }
 
-    // 👉 ÖĞRENCİ EKLEME MODU
+    /* ===== ÖĞRENCİ EKLEME MODU ===== */
     if (waitingForNfc) {
         lastNfcUid = nfcData;
 
@@ -85,6 +97,7 @@ app.post('/api/check-nfc', async (req, res) => {
     let responseData;
 
     if (mongoose.connection.readyState !== 1) {
+        // OFFLINE
         if (nfcData === "0x00 0x00") {
             responseData = {
                 found: true,
@@ -99,6 +112,7 @@ app.post('/api/check-nfc', async (req, res) => {
             };
         }
     } else {
+        // ONLINE
         try {
             const student = await Student.findOne({ nfcUid: nfcData });
 
@@ -116,7 +130,7 @@ app.post('/api/check-nfc', async (req, res) => {
                 };
             }
         } catch (err) {
-            console.error(err);
+            console.error('❌ DB HATASI:', err);
             return res.status(500).json({ found: false });
         }
     }
@@ -143,7 +157,7 @@ app.post('/api/students', async (req, res) => {
     try {
         const exists = await Student.findOne({ nfcUid });
         if (exists) {
-            return res.status(409).json({ message: 'Bu NFC zaten kayıtlı' });
+            return res.status(409).json({ message: 'Bu NFC artıq mövcuddur' });
         }
 
         const student = new Student({
@@ -153,7 +167,7 @@ app.post('/api/students', async (req, res) => {
 
         await student.save();
 
-        // RESET
+        // RESET STATE
         waitingForNfc = false;
         lastNfcUid = null;
 
@@ -161,7 +175,7 @@ app.post('/api/students', async (req, res) => {
 
         res.json({ success: true });
     } catch (err) {
-        console.error(err);
+        console.error('❌ STUDENT SAVE ERROR:', err);
         res.status(500).json({ message: 'DB xətası' });
     }
 });
@@ -171,7 +185,13 @@ app.get('/api/scan-history', (req, res) => {
     res.json(scanHistory);
 });
 
+/* ================= GLOBAL ERROR HANDLER ================= */
+app.use((err, req, res, next) => {
+    console.error('🔥 EXPRESS ERROR:', err);
+    res.status(500).json({ message: 'Server error' });
+});
+
 /* ================= SERVER ================= */
 app.listen(PORT, () => {
-    console.log(`Server ${PORT} portunda işləyir`);
+    console.log(`🚀 Server ${PORT} portunda işləyir`);
 });
