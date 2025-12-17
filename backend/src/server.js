@@ -32,11 +32,9 @@ app.post('/api/login', (req, res) => {
 /* ================= NFC STATE ================= */
 let scanHistory = [];
 
-let waitingForAdd = false;        // ekleme NFC modu
-let waitingForDelete = false;     // silme NFC okuma modu
-
-let lastNfcUid = null;            // frontend polling için
-let pendingDeleteUid = null;      // silme onayı bekleyen UID
+let waitingForAdd = false;     // öğrenci ekleme NFC modu
+let waitingForDelete = false;  // öğrenci silme NFC okuma modu
+let lastNfcUid = null;
 
 /* ================= NFC START (EKLEME) ================= */
 app.post('/api/nfc/start-wait', (req, res) => {
@@ -53,7 +51,6 @@ app.post('/api/nfc/start-delete', (req, res) => {
     waitingForDelete = true;
     waitingForAdd = false;
     lastNfcUid = null;
-    pendingDeleteUid = null;
 
     console.log('🗑️ NFC SİLME OKUMA modu aktif');
     res.json({ success: true });
@@ -80,11 +77,10 @@ app.post('/api/check-nfc', async (req, res) => {
         });
     }
 
-    /* ===== SİLME OKUMA MODU (SADECE OKU) ===== */
+    /* ===== SİLME OKUMA MODU (SADECE UID AL) ===== */
     if (waitingForDelete) {
         waitingForDelete = false;
         lastNfcUid = nfcData;
-        pendingDeleteUid = nfcData;
 
         console.log('🟡 Silme için UID alındı:', nfcData);
 
@@ -147,21 +143,21 @@ app.post('/api/students', async (req, res) => {
     }
 });
 
-/* ================= CONFIRM DELETE ================= */
+/* ================= DELETE STUDENT (GARANTİ) ================= */
 app.post('/api/students/delete', async (req, res) => {
     const { nfcUid } = req.body;
 
-    if (!nfcUid || nfcUid !== pendingDeleteUid) {
-        return res.status(400).json({ message: 'Etibarsız silmə tələbi' });
+    if (!nfcUid) {
+        return res.status(400).json({ message: 'UID yoxdur' });
     }
+
+    console.log('🧪 DELETE REQUEST UID:', nfcUid);
 
     try {
         const deleted = await Student.findOneAndDelete({ nfcData: nfcUid });
 
-        pendingDeleteUid = null;
-        lastNfcUid = null;
-
         if (!deleted) {
+            console.log('❌ DB-də tapılmadı:', nfcUid);
             return res.status(404).json({ message: 'Tələbə tapılmadı' });
         }
 
