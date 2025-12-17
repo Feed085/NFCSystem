@@ -116,12 +116,12 @@ const Dashboard = () => {
         }, 1000);
     };
 
-    /* CONFIRM DELETE */
+    /* ✅ CONFIRM DELETE – FIXED */
     const handleConfirmDelete = async () => {
         if (!deleteUid) return;
 
-        await axios.post('/api/check-nfc', {
-            nfcData: deleteUid
+        await axios.post('/api/students/delete', {   // 🔴 ASIL DÜZELTME BURASI
+            nfcUid: deleteUid
         });
 
         setDeleteUid(null);
@@ -206,48 +206,26 @@ const Dashboard = () => {
                     >
 
                         {/* LEFT */}
-                        <div
-                            style={{
-                                flex: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center'
-                            }}
-                        >
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                             <div>
                                 <div className="big-plus">➕</div>
                                 <h4>Yeni Tələbə</h4>
                             </div>
-
                             <div style={{ flex: 1 }} />
-
-                            <button
-                                className="btn full"
-                                onClick={() => setShowAddStudent(true)}
-                            >
+                            <button className="btn full" onClick={() => setShowAddStudent(true)}>
                                 Əlavə et
                             </button>
                         </div>
 
-                        {/* DIVIDER */}
                         <div style={{ width: '1px', background: 'rgba(255,255,255,0.2)' }} />
 
                         {/* RIGHT */}
-                        <div
-                            style={{
-                                flex: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center'
-                            }}
-                        >
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                             <div>
                                 <div style={{ fontSize: '2.2rem' }}>🗑️</div>
                                 <h4>Tələbə Sil</h4>
                             </div>
-
                             <div style={{ flex: 1 }} />
-
                             <button
                                 className="btn full"
                                 style={{ background: 'var(--error)' }}
@@ -297,10 +275,7 @@ const Dashboard = () => {
                                 >
                                     💾 Qeyd et
                                 </button>
-                                <button
-                                    className="btn cancel"
-                                    onClick={() => setShowAddStudent(false)}
-                                >
+                                <button className="btn cancel" onClick={() => setShowAddStudent(false)}>
                                     Ləğv et
                                 </button>
                             </div>
