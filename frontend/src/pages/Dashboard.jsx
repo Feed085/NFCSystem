@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import './Dashboard.css'; // <-- CSS burada import ediliyor
 
 /* INPUT STYLE */
 const inputStyle = {
     width: '100%',
     padding: '0.7rem',
-    marginTop: '0.8rem',
-    borderRadius: '8px',
+    borderRadius: '12px',
     border: '1px solid var(--glass-border)',
     background: 'rgba(255,255,255,0.08)',
     color: '#fff',
-    outline: 'none'
+    outline: 'none',
+    boxSizing: 'border-box'
 };
 
 const Dashboard = () => {
@@ -41,51 +42,45 @@ const Dashboard = () => {
     const fetchHistory = async () => {
         try {
             const res = await axios.get('/api/scan-history');
-            if (Array.isArray(res.data)) {
-                setScanHistory(res.data);
-            }
+            if (Array.isArray(res.data)) setScanHistory(res.data);
         } catch (err) {
-            console.error("History alınamadı", err);
+            console.error('History alınamadı', err);
         }
     };
 
-    /* NORMAL NFC SIMULATION (YOKLAMA) */
+    /* SIMULATION */
     const handleSimulation = async (nfcData) => {
         try {
             await axios.post('/api/check-nfc', { nfcData });
             fetchHistory();
-        } catch (err) {
+        } catch {
             alert('Simulyasiya xətası');
         }
     };
 
-    /* ================= NFC OKUT (BACKEND BEKLEME MODU) ================= */
+    /* NFC READ */
     const handleReadNfc = async () => {
         setIsReadingNfc(true);
         setNfcUid('');
 
         try {
-            // 1️⃣ Backend'e "bekle" de
             await axios.post('/api/nfc/start-wait');
 
-            // 2️⃣ UID gelene kadar polling
             const interval = setInterval(async () => {
                 const res = await axios.get('/api/nfc/latest');
-
                 if (res.data.uid) {
                     setNfcUid(res.data.uid);
                     setIsReadingNfc(false);
                     clearInterval(interval);
                 }
             }, 1000);
-
-        } catch (err) {
+        } catch {
             setIsReadingNfc(false);
-            alert('NFC oxuma başlatılamadı');
+            alert('NFC oxuma başlaya bilmədi.');
         }
     };
 
-    /* ================= SAVE STUDENT ================= */
+    /* SAVE STUDENT */
     const handleSaveStudent = async () => {
         if (!studentName || !nfcUid) return;
 
@@ -95,13 +90,11 @@ const Dashboard = () => {
                 nfcUid
             });
 
-            // RESET
             setStudentName('');
             setNfcUid('');
             setShowAddStudent(false);
-
         } catch (err) {
-            alert(err.response?.data?.message || 'Kayıt xətası');
+            alert(err.response?.data?.message || 'Qeydiyyat xətası');
         }
     };
 
@@ -110,7 +103,7 @@ const Dashboard = () => {
 
             {/* NAVBAR */}
             <nav className="nav glass" style={{ padding: '1rem 2rem' }}>
-                <div className="logo">NFC Yoklama</div>
+                <div className="logo">NFC İlə Tələbə Sistemi</div>
                 <button
                     onClick={handleLogout}
                     className="btn"
@@ -124,44 +117,28 @@ const Dashboard = () => {
 
                 {/* HISTORY */}
                 <div className="glass status-card" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                    <h2 style={{
-                        color: 'var(--text-muted)',
-                        marginBottom: '1rem',
-                        position: 'sticky',
-                        top: 0,
-                        background: 'rgba(255,255,255,0.05)',
-                        backdropFilter: 'blur(10px)',
-                        padding: '10px',
-                        zIndex: 10,
-                        borderRadius: '8px'
-                    }}>
-                        Son Oxunan Kartlar
-                    </h2>
+                    <h2 className="sticky-title">Son Oxunan Kartlar</h2>
 
                     {scanHistory.length === 0 ? (
                         <div style={{ padding: '2rem', color: 'var(--text-muted)' }}>
                             Hələ kart oxudulmadı...
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div className="history-list">
                             {scanHistory.map((scan, index) => (
                                 <div
                                     key={index}
-                                    className="glass"
+                                    className="glass history-item"
                                     style={{
-                                        padding: '1rem',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        borderLeft: `5px solid ${scan.found ? 'var(--primary)' : 'var(--error)'}`,
-                                        background: 'rgba(255,255,255,0.03)'
+                                        borderLeft: `5px solid ${scan.found ? 'var(--primary)' : 'var(--error)'}`
                                     }}
                                 >
-                                    <div style={{ fontSize: '1.5rem', marginRight: '1rem' }}>
+                                    <div className="history-icon">
                                         {scan.found ? '✅' : '❌'}
                                     </div>
                                     <div>
-                                        <div style={{ fontWeight: 'bold' }}>{scan.message}</div>
-                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                        <div className="history-text">{scan.message}</div>
+                                        <div className="history-time">
                                             {new Date(scan.timestamp).toLocaleTimeString()}
                                         </div>
                                     </div>
@@ -172,19 +149,19 @@ const Dashboard = () => {
                 </div>
 
                 {/* ALT PANEL */}
-                <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                <div className="bottom-panels">
 
                     {/* SIMULATION */}
-                    <div className="glass" style={{ flex: '1 1 65%', padding: '2rem' }}>
+                    <div className="glass panel">
                         <h3>🛠 Simulyasiya</h3>
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                            <button className="btn" style={{ flex: 1 }} onClick={() => handleSimulation("0x00 0x00")}>
+                        <div className="panel-actions">
+                            <button className="btn" onClick={() => handleSimulation('0x00 0x00')}>
                                 ✅ Düzgün Kart
                             </button>
                             <button
                                 className="btn"
-                                style={{ flex: 1, background: 'var(--error)' }}
-                                onClick={() => handleSimulation("0x99 0x99")}
+                                style={{ background: 'var(--error)' }}
+                                onClick={() => handleSimulation('0x99 0x99')}
                             >
                                 ❌ Səhv Kart
                             </button>
@@ -192,11 +169,11 @@ const Dashboard = () => {
                     </div>
 
                     {/* ADD STUDENT */}
-                    <div className="glass" style={{ flex: '1 1 30%', padding: '2rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '2.5rem' }}>➕</div>
-                        <h4>Yeni Öğrenci</h4>
-                        <button className="btn" style={{ width: '100%' }} onClick={() => setShowAddStudent(true)}>
-                            Öğrenci Ekle
+                    <div className="glass panel center">
+                        <div className="big-plus">➕</div>
+                        <h4>Yeni Tələbə</h4>
+                        <button className="btn full" onClick={() => setShowAddStudent(true)}>
+                            Tələbə əlavə et
                         </button>
                     </div>
                 </div>
@@ -204,68 +181,53 @@ const Dashboard = () => {
 
             {/* MODAL */}
             {showAddStudent && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        inset: 0,
-                        background: 'rgba(0,0,0,0.6)',
-                        backdropFilter: 'blur(6px)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 9999
-                    }}
-                    onClick={() => setShowAddStudent(false)}
-                >
-                    <div
-                        className="glass"
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ width: '380px', padding: '2rem', borderRadius: '16px' }}
-                    >
-                        <h3>➕ Yeni Öğrenci</h3>
+                <div className="modal-backdrop" onClick={() => setShowAddStudent(false)}>
+                    <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+                        <h3>➕ Yeni Tələbə</h3>
+                        <p className="modal-desc">Ad yaz və NFC kartını oxut</p>
 
-                        <input
-                            placeholder="Ad Soyad"
-                            value={studentName}
-                            onChange={(e) => setStudentName(e.target.value)}
-                            style={inputStyle}
-                        />
+                        <div className="modal-body">
+                            <input
+                                placeholder="Ad Soyad"
+                                value={studentName}
+                                onChange={(e) => setStudentName(e.target.value)}
+                                style={inputStyle}
+                            />
 
-                        <button
-                            className="btn"
-                            style={{ width: '100%', marginTop: '1rem' }}
-                            onClick={handleReadNfc}
-                            disabled={isReadingNfc}
-                        >
-                            {isReadingNfc ? 'NFC gözlənilir...' : '📡 NFC Kart Okut'}
-                        </button>
+                            <button
+                                className={`btn full ${isReadingNfc ? 'nfc-reading' : ''}`}
+                                onClick={handleReadNfc}
+                                disabled={isReadingNfc}
+                            >
+                                {isReadingNfc ? '📡 NFC gözlənilir...' : '📡 NFC Kart Oxut'}
+                            </button>
 
-                        {nfcUid && (
-                            <div style={{ marginTop: '0.8rem', color: 'var(--primary)' }}>
-                                Oxunan UID: {nfcUid}
+                            {nfcUid && (
+                                <div className="uid-box">
+                                    ✅ Oxunan UID: <b>{nfcUid}</b>
+                                </div>
+                            )}
+
+                            <div className="modal-actions">
+                                <button
+                                    className="btn"
+                                    disabled={!studentName || !nfcUid}
+                                    onClick={handleSaveStudent}
+                                >
+                                    💾 Qeyd et
+                                </button>
+                                <button
+                                    className="btn cancel"
+                                    onClick={() => setShowAddStudent(false)}
+                                >
+                                    Ləğv et
+                                </button>
                             </div>
-                        )}
-
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                            <button
-                                className="btn"
-                                style={{ flex: 1 }}
-                                disabled={!studentName || !nfcUid}
-                                onClick={handleSaveStudent}
-                            >
-                                Kaydet
-                            </button>
-                            <button
-                                className="btn"
-                                style={{ flex: 1, background: 'var(--error)' }}
-                                onClick={() => setShowAddStudent(false)}
-                            >
-                                İptal
-                            </button>
                         </div>
                     </div>
                 </div>
             )}
+
         </div>
     );
 };
