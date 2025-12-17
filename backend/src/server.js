@@ -60,7 +60,7 @@ app.post('/api/nfc/start-delete', (req, res) => {
 app.post('/api/check-nfc', async (req, res) => {
     const { nfcData } = req.body;
     if (!nfcData) {
-        return res.status(400).json({ found: false, message: 'NFC yok' });
+        return res.status(400).json({ found: false, message: 'NFC yoxdur' });
     }
 
     /* ===== EKLEME MODU ===== */
@@ -73,7 +73,7 @@ app.post('/api/check-nfc', async (req, res) => {
         return res.json({
             found: true,
             uid: nfcData,
-            message: 'UID alındı'
+            message: 'UID alindi'
         });
     }
 
@@ -118,7 +118,7 @@ app.get('/api/nfc/latest', (req, res) => {
 app.post('/api/students', async (req, res) => {
     const { name, nfcUid } = req.body;
     if (!name || !nfcUid) {
-        return res.status(400).json({ message: 'EKSIK BILGI' });
+        return res.status(400).json({ message: 'Əksik Bilgi' });
     }
 
     try {
