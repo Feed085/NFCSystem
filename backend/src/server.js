@@ -57,7 +57,7 @@ app.post('/api/check-nfc', async (req, res) => {
         return res.json({ uid: nfcData });
     }
 
-    const student = await Student.findOne({ nfcUid: nfcData });
+    const student = await Student.findOne({ nfcData: nfcData });
     const response = student
         ? { found: true, message: `${student.fullName} derste` }
         : { found: false, message: 'Tanımsız kart' };
