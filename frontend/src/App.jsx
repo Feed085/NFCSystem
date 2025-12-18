@@ -2,11 +2,18 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import StudentDashboard from './pages/StudentDashboard';
 
-// Koruyucu Rota - Protected Route Middleware
-const ProtectedRoute = ({ children }) => {
+// Admin Protected Route
+const AdminRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
+
+// Student Protected Route
+const StudentRoute = ({ children }) => {
+  const token = localStorage.getItem('studentToken');
+  return token ? children : <Navigate to="/login" replace />;
 };
 
 function App() {
@@ -15,14 +22,22 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
 
+        {/* Admin Dashboard */}
         <Route path="/dashboard" element={
-          <ProtectedRoute>
+          <AdminRoute>
             <Dashboard />
-          </ProtectedRoute>
+          </AdminRoute>
         } />
 
-        {/* Varsayılan olarak dashboard'a, oradan da login'e yönlendir */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        {/* Student Dashboard */}
+        <Route path="/student/dashboard" element={
+          <StudentRoute>
+            <StudentDashboard />
+          </StudentRoute>
+        } />
+
+        {/* Varsayılan olarak login'e yönlendir */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );

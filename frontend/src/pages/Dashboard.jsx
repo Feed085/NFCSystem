@@ -12,7 +12,8 @@ const inputStyle = {
     background: 'rgba(255,255,255,0.08)',
     color: '#fff',
     outline: 'none',
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
+    marginBottom: '1rem' // Added margin
 };
 
 const Dashboard = () => {
@@ -21,6 +22,8 @@ const Dashboard = () => {
     // ADD STUDENT
     const [showAddStudent, setShowAddStudent] = useState(false);
     const [studentName, setStudentName] = useState('');
+    const [username, setUsername] = useState(''); // NEW
+    const [password, setPassword] = useState(''); // NEW
     const [nfcUid, setNfcUid] = useState('');
     const [isReadingNfc, setIsReadingNfc] = useState(false);
 
@@ -49,7 +52,7 @@ const Dashboard = () => {
         try {
             const res = await axios.get('/api/scan-history');
             if (Array.isArray(res.data)) setScanHistory(res.data);
-        } catch {}
+        } catch { }
     };
 
     /* SIMULATION */
@@ -79,16 +82,25 @@ const Dashboard = () => {
 
     /* SAVE STUDENT */
     const handleSaveStudent = async () => {
-        if (!studentName || !nfcUid) return;
+        if (!studentName || !nfcUid || !username || !password) return; // Validate all
 
-        await axios.post('/api/students', {
-            name: studentName,
-            nfcUid
-        });
+        try {
+            await axios.post('/api/students', {
+                name: studentName,
+                nfcUid,
+                username, // NEW
+                password  // NEW
+            });
 
-        setStudentName('');
-        setNfcUid('');
-        setShowAddStudent(false);
+            setStudentName('');
+            setUsername('');
+            setPassword('');
+            setNfcUid('');
+            setShowAddStudent(false);
+            alert('Tələbə uğurla əlavə edildi!');
+        } catch (err) {
+            alert('Xəta: ' + (err.response?.data?.message || 'Qeydiyyat xətası'));
+        }
     };
 
     /* DELETE NFC READ */
@@ -116,11 +128,11 @@ const Dashboard = () => {
         }, 1000);
     };
 
-    /* ✅ CONFIRM DELETE – FIXED */
+    /* CONFIRM DELETE */
     const handleConfirmDelete = async () => {
         if (!deleteUid) return;
 
-        await axios.post('/api/students/delete', {   // 🔴 ASIL DÜZELTME BURASI
+        await axios.post('/api/students/delete', {
             nfcUid: deleteUid
         });
 
@@ -134,7 +146,7 @@ const Dashboard = () => {
 
             {/* NAVBAR */}
             <nav className="nav glass" style={{ padding: '1rem 2rem' }}>
-                <div className="logo">NFC İlə Tələbə Sistemi</div>
+                <div className="logo">NFC İlə Tələbə Sistemi (Admin)</div>
                 <button
                     onClick={handleLogout}
                     className="btn"
@@ -243,13 +255,28 @@ const Dashboard = () => {
                 <div className="modal-backdrop" onClick={() => setShowAddStudent(false)}>
                     <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
                         <h3>➕ Yeni Tələbə</h3>
-                        <p className="modal-desc">Ad yaz və NFC kartını oxut</p>
+                        <p className="modal-desc">Məlumatları doldur və NFC kartını oxut</p>
 
                         <div className="modal-body">
                             <input
                                 placeholder="Ad Soyad"
                                 value={studentName}
                                 onChange={(e) => setStudentName(e.target.value)}
+                                style={inputStyle}
+                            />
+
+                            {/* NEW FIELDS */}
+                            <input
+                                placeholder="İstifadəçi Adı (Giriş üçün)"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                style={inputStyle}
+                            />
+                            <input
+                                type="password"
+                                placeholder="Şifrə"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                                 style={inputStyle}
                             />
 
@@ -270,7 +297,7 @@ const Dashboard = () => {
                             <div className="modal-actions">
                                 <button
                                     className="btn"
-                                    disabled={!studentName || !nfcUid}
+                                    disabled={!studentName || !nfcUid || !username || !password}
                                     onClick={handleSaveStudent}
                                 >
                                     💾 Qeyd et
@@ -312,7 +339,7 @@ const Dashboard = () => {
                                     disabled={!deleteUid}
                                     onClick={handleConfirmDelete}
                                 >
-                                    🗑️ Kaydet
+                                    🗑️ Sil
                                 </button>
                                 <button
                                     className="btn cancel"

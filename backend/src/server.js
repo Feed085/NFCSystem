@@ -2,10 +2,14 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const Student = require('./models/Student');
+const StudentAuth = require('./models/StudentAuth');
 
 const app = express();
 const PORT = 5000;
+const JWT_SECRET = 'supersecretkey123'; // Productionda .env'den alınmalı
 
 /* ================= MIDDLEWARE ================= */
 app.use(cors());
@@ -20,13 +24,90 @@ mongoose.connect(
     console.error('❌ MongoDB error:', err.message);
 });
 
-/* ================= LOGIN ================= */
+/* ================= AUTH MIDDLEWARE ================= */
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) return res.sendStatus(401);
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.sendStatus(403);
+        req.user = user;
+        next();
+    });
+};
+
+/* ================= ADMIN LOGIN ================= */
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     if (username === 'elxan' && password === '1234') {
         return res.json({ success: true });
     }
     res.status(401).json({ success: false });
+});
+
+/* ================= STUDENT LOGIN ================= */
+app.post('/api/student/login', async (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        const studentAuth = await StudentAuth.findOne({ username });
+        if (!studentAuth) {
+            return res.status(400).json({ message: 'İstifadəçi tapılmadı' });
+        }
+
+        const isMatch = await bcrypt.compare(password, studentAuth.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Şifrə yanlışdır' });
+        }
+
+        // Token oluştur
+        const token = jwt.sign(
+            { id: studentAuth.studentId, username: studentAuth.username, role: 'student' },
+            JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+
+        res.json({
+            success: true,
+            token,
+            user: {
+                studentId: studentAuth.studentId,
+                name: studentAuth.name,
+                nfcUid: studentAuth.nfcUid,
+                username: studentAuth.username
+            }
+        });
+
+    } catch (err) {
+        console.error('Login error:', err);
+        res.status(500).json({ message: 'Server xətası' });
+    }
+});
+
+/* ================= GET CURRENT STUDENT INFO ================= */
+app.get('/api/student/me', authenticateToken, async (req, res) => {
+    try {
+        // req.user JWT'den geliyor
+        const studentAuth = await StudentAuth.findOne({ studentId: req.user.id });
+        if (!studentAuth) return res.status(404).json({ message: 'Tələbə tapılmadı' });
+
+        // Öğrenciye özel scan history filtrele
+        const myHistory = scanHistory.filter(scan => scan.uid === studentAuth.nfcUid);
+
+        res.json({
+            user: {
+                name: studentAuth.name,
+                nfcUid: studentAuth.nfcUid
+            },
+            history: myHistory
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server xətası' });
+    }
 });
 
 /* ================= NFC STATE ================= */
@@ -96,8 +177,8 @@ app.post('/api/check-nfc', async (req, res) => {
         const student = await Student.findOne({ nfcData });
 
         const response = student
-            ? { found: true, message: `${student.name} dərsdə` }
-            : { found: false, message: 'Bilinmeyen kart' };
+            ? { found: true, message: `${student.name} dərsdə`, uid: nfcData, name: student.name }
+            : { found: false, message: 'Bilinmeyen kart', uid: nfcData };
 
         scanHistory.unshift({ ...response, timestamp: new Date() });
         if (scanHistory.length > 50) scanHistory.pop();
@@ -114,32 +195,57 @@ app.get('/api/nfc/latest', (req, res) => {
     res.json({ uid: lastNfcUid });
 });
 
-/* ================= ADD STUDENT ================= */
+/* ================= ADD STUDENT (UPDATED) ================= */
 app.post('/api/students', async (req, res) => {
-    const { name, nfcUid } = req.body;
-    if (!name || !nfcUid) {
-        return res.status(400).json({ message: 'Əksik Bilgi' });
+    const { name, nfcUid, username, password } = req.body;
+
+    // Basit validasyon
+    if (!name || !nfcUid || !username || !password) {
+        return res.status(400).json({ message: 'Əksik Bilgi: Ad, UID, Username və Şifrə doldurulmalıdır.' });
     }
 
     try {
+        // 1. Check if NFC exists
         const exists = await Student.findOne({ nfcData: nfcUid });
         if (exists) {
             return res.status(409).json({ message: 'Bu NFC ARTIQ QEYDIYYATDADIR' });
         }
 
-        await new Student({
+        // 2. Check if Username exists
+        const authExists = await StudentAuth.findOne({ username });
+        if (authExists) {
+            return res.status(409).json({ message: 'Bu istifadəçi adı artıq tutulub' });
+        }
+
+        // 3. Create Student
+        const newStudent = new Student({
             name,
             nfcData: nfcUid
-        }).save();
+        });
+        const savedStudent = await newStudent.save();
+
+        // 4. Hash Password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // 5. Create StudentAuth
+        const newAuth = new StudentAuth({
+            studentId: savedStudent._id,
+            name: name,
+            username: username,
+            password: hashedPassword,
+            nfcUid: nfcUid
+        });
+        await newAuth.save();
 
         lastNfcUid = null;
 
-        console.log('✅ Yeni tələbə əlavə olundu:', name);
+        console.log('✅ Yeni tələbə və giriş məlumatları əlavə olundu:', name);
         res.json({ success: true });
 
     } catch (err) {
         console.error('❌ STUDENT SAVE ERROR:', err);
-        res.status(500).json({ message: 'Qeydiyyat xətası' });
+        res.status(500).json({ message: 'Qeydiyyat xətası: ' + err.message });
     }
 });
 
@@ -154,6 +260,7 @@ app.post('/api/students/delete', async (req, res) => {
     console.log('🧪 DELETE REQUEST UID:', nfcUid);
 
     try {
+        // 1. Delete Student
         const deleted = await Student.findOneAndDelete({ nfcData: nfcUid });
 
         if (!deleted) {
@@ -161,7 +268,10 @@ app.post('/api/students/delete', async (req, res) => {
             return res.status(404).json({ message: 'TELEBE TAPILMADI' });
         }
 
-        console.log('🗑️ Tələbə silindi:', deleted.name);
+        // 2. Delete StudentAuth
+        await StudentAuth.findOneAndDelete({ nfcUid: nfcUid });
+
+        console.log('🗑️ Tələbə və giriş məlumatı silindi:', deleted.name);
         res.json({ success: true, name: deleted.name });
 
     } catch (err) {

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
+    const [isStudent, setIsStudent] = useState(false); // Toggle state
     const [formData, setFormData] = useState({ username: '', password: '' });
     const [error, setError] = useState('');
     const navigate = useNavigate();
@@ -13,21 +14,58 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError('');
+
         try {
-            const res = await axios.post('/api/login', formData);
-            if (res.data.success) {
-                localStorage.setItem('isAuthenticated', 'true');
-                navigate('/dashboard');
+            if (isStudent) {
+                // Student Login
+                const res = await axios.post('/api/student/login', formData);
+                if (res.data.success) {
+                    localStorage.setItem('studentToken', res.data.token);
+                    localStorage.setItem('studentUser', JSON.stringify(res.data.user));
+                    navigate('/student/dashboard');
+                }
+            } else {
+                // Admin Login
+                const res = await axios.post('/api/login', formData);
+                if (res.data.success) {
+                    localStorage.setItem('isAuthenticated', 'true');
+                    navigate('/dashboard');
+                }
             }
         } catch (err) {
-            setError('Giriş uğursuz. Zəhmət olmasa, məlumatlarınızı yoxlayın.');
+            const msg = err.response?.data?.message || 'Giriş uğursuz. Məlumatları yoxlayın.';
+            setError(msg);
         }
     };
 
     return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column' }}>
+
             <div className="glass animate-fade-in" style={{ padding: '3rem', width: '100%', maxWidth: '400px' }}>
-                <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>Admin Girişi</h2>
+
+                {/* TOGGLE BUTTONS */}
+                <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', justifyContent: 'center' }}>
+                    <button
+                        className={`btn ${!isStudent ? '' : 'cancel'}`}
+                        onClick={() => { setIsStudent(false); setError(''); }}
+                        style={{ flex: 1, opacity: !isStudent ? 1 : 0.5 }}
+                    >
+                        Admin
+                    </button>
+                    <button
+                        className={`btn ${isStudent ? '' : 'cancel'}`}
+                        onClick={() => { setIsStudent(true); setError(''); }}
+                        style={{ flex: 1, opacity: isStudent ? 1 : 0.5 }}
+                    >
+                        Tələbə
+                    </button>
+                </div>
+
+                <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                    {isStudent ? 'Tələbə Girişi' : 'Admin Girişi'}
+                </h2>
+
                 {error && <div style={{ color: 'var(--error)', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
 
                 <form onSubmit={handleSubmit}>
@@ -39,7 +77,7 @@ const Login = () => {
                             className="input-field"
                             value={formData.username}
                             onChange={handleChange}
-                            placeholder="admin"
+                            placeholder={isStudent ? "student_user" : "admin"}
                         />
                     </div>
 
@@ -51,7 +89,7 @@ const Login = () => {
                             className="input-field"
                             value={formData.password}
                             onChange={handleChange}
-                            placeholder="123"
+                            placeholder="***"
                         />
                     </div>
 
