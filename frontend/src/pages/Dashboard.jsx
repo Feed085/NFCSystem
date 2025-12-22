@@ -11,7 +11,11 @@ const Dashboard = () => {
     const [lessonStartTime, setLessonStartTime] = useState('09:00');
     const [lessonEndTime, setLessonEndTime] = useState('10:00');
     const [dailyAttendance, setDailyAttendance] = useState([]);
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Attendance List Date
+
+    // NEW: Settings Date
+    const [settingsDate, setSettingsDate] = useState(''); // Empty = Global Default
+    const [isCustomSchedule, setIsCustomSchedule] = useState(false);
 
     const [studentName, setStudentName] = useState('');
     const [courseGroup, setCourseGroup] = useState(''); // NEW
@@ -25,32 +29,35 @@ const Dashboard = () => {
     // NFC MODE: add / delete
     const [nfcMode, setNfcMode] = useState(null);
 
+    // 1. Fetch Settings (Run on mount and when settingsDate changes)
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await axios.get('/api/settings/lesson-time');
-                setLessonStartTime(res.data.lessonStartTime);
-                setLessonEndTime(res.data.lessonEndTime);
+                // Fetch schedule for specific date or global
+                const res = await axios.get(`/api/settings/schedule?date=${settingsDate}`);
+                setLessonStartTime(res.data.lessonStartTime || res.data.startTime || '09:00');
+                setLessonEndTime(res.data.lessonEndTime || res.data.endTime || '10:00');
+                setIsCustomSchedule(!!res.data.isCustom);
             } catch { }
         };
+        fetchSettings();
+    }, [settingsDate]);
 
+    // 2. Fetch Live Data (History & Attendance) - Run periodically
+    useEffect(() => {
         const fetchLiveData = async () => {
-            // 1. History
+            // History
             try {
                 const res = await axios.get('/api/scan-history');
                 if (Array.isArray(res.data)) setScanHistory(res.data);
             } catch { }
 
-            // 2. Daily Attendance
+            // Daily Attendance
             fetchDailyAttendance(selectedDate);
         };
 
-        fetchSettings(); // Run once
-        fetchLiveData(); // Run once immediately
-
-        const interval = setInterval(() => {
-            fetchLiveData(); // Loop only live data
-        }, 3000);
+        fetchLiveData(); // Initial
+        const interval = setInterval(fetchLiveData, 3000);
         return () => clearInterval(interval);
     }, [selectedDate]);
 
@@ -159,7 +166,8 @@ const Dashboard = () => {
 
     const handleSaveSettings = async () => {
         try {
-            await axios.post('/api/settings/lesson-time', {
+            await axios.post('/api/settings/schedule', {
+                date: settingsDate, // Optional: if empty, saves as global
                 startTime: lessonStartTime,
                 endTime: lessonEndTime
             });
@@ -294,9 +302,34 @@ const Dashboard = () => {
 
                 {/* SETTINGS PANEL */}
                 <div className="glass" style={{ padding: '2.5rem', borderRadius: '32px', height: 'fit-content' }}>
-                    <h3 style={{ marginBottom: '2rem', color: 'var(--primary)', fontSize: '1.4rem' }}>⚙️ Dərs Saatları</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                        <h3 style={{ color: 'var(--primary)', fontSize: '1.4rem', margin: 0 }}>⚙️ Dərs Saatları</h3>
+                        {/* Status Badge */}
+                        <div style={{
+                            padding: '0.3rem 0.8rem',
+                            borderRadius: '8px',
+                            fontSize: '0.8rem',
+                            background: isCustomSchedule ? 'rgba(0, 243, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                            color: isCustomSchedule ? 'var(--primary)' : 'var(--text-muted)',
+                            border: isCustomSchedule ? '1px solid currentColor' : 'none'
+                        }}>
+                            {isCustomSchedule ? 'Xüsusi (Bu Tarix)' : 'Standart (Hər Gün)'}
+                        </div>
+                    </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+                        {/* Date Picker */}
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', opacity: 0.7 }}>Tarix Seç (Standart üçün boş burax)</label>
+                            <input
+                                type="date"
+                                className="input-field"
+                                value={settingsDate}
+                                onChange={(e) => setSettingsDate(e.target.value)}
+                            />
+                        </div>
+
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', opacity: 0.7 }}>Dərs Başlama Saatı</label>
                             <input

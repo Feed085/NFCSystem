@@ -8,6 +8,7 @@ const Student = require('./models/Student');
 const StudentAuth = require('./models/StudentAuth');
 const Attendance = require('./models/Attendance');
 const SystemSettings = require('./models/SystemSettings');
+const LessonSchedule = require('./models/LessonSchedule');
 const { startScheduler } = require('./services/attendanceScheduler');
 
 const app = express();
@@ -198,8 +199,16 @@ app.post('/api/check-nfc', async (req, res) => {
             const timeStr = `${String(bakuDate.getHours()).padStart(2, '0')}:${String(bakuDate.getMinutes()).padStart(2, '0')}`;
 
             // --- FETCH SETTINGS FOR TIME COMPARISON ---
-            const settings = await SystemSettings.findOne({ key: 'lessonInfo' });
-            const lessonStartTime = settings?.value?.lessonStartTime || '09:00';
+            // 1. Check specific schedule for this date
+            let lessonStartTime = '09:00';
+            const schedule = await LessonSchedule.findOne({ date: todayStr });
+            if (schedule) {
+                lessonStartTime = schedule.startTime;
+            } else {
+                // 2. Fallback to global setting
+                const settings = await SystemSettings.findOne({ key: 'lessonInfo' });
+                lessonStartTime = settings?.value?.lessonStartTime || '09:00';
+            }
 
             // Determine status based on time
             // Compare HH:MM strings (e.g. "09:05" > "09:00" is true)
@@ -391,7 +400,10 @@ app.get('/api/attendance/my-history', authenticateToken, async (req, res) => {
 });
 
 /* ================= SETTINGS ROUTES ================= */
+
+// Legacy Global Settings (Forward to Schedule API logic optionally, or keep simple)
 app.post('/api/settings/lesson-time', async (req, res) => {
+    // This now updates the GLOBAL default
     const { startTime, endTime } = req.body;
     try {
         await SystemSettings.findOneAndUpdate(
@@ -411,6 +423,58 @@ app.get('/api/settings/lesson-time', async (req, res) => {
         res.json(settings?.value || { lessonStartTime: '09:00', lessonEndTime: '10:00' });
     } catch (err) {
         res.status(500).json({ message: 'Xəta' });
+    }
+});
+
+// NEW: Schedule API
+app.get('/api/settings/schedule', async (req, res) => {
+    const { date } = req.query; // YYYY-MM-DD
+    try {
+        if (date) {
+            const schedule = await LessonSchedule.findOne({ date });
+            if (schedule) {
+                return res.json({
+                    startTime: schedule.startTime,
+                    endTime: schedule.endTime,
+                    isCustom: true
+                });
+            }
+        }
+        // Fallback to global
+        const settings = await SystemSettings.findOne({ key: 'lessonInfo' });
+        res.json(settings?.value || { lessonStartTime: '09:00', lessonEndTime: '10:00', isCustom: false });
+    } catch (err) {
+        res.status(500).json({ message: 'Xəta' });
+    }
+});
+
+app.post('/api/settings/schedule', async (req, res) => {
+    const { date, startTime, endTime } = req.body;
+
+    // If no date provided, save as global default
+    if (!date) {
+        try {
+            await SystemSettings.findOneAndUpdate(
+                { key: 'lessonInfo' },
+                { value: { lessonStartTime: startTime, lessonEndTime: endTime } },
+                { upsert: true, new: true }
+            );
+            return res.json({ success: true, type: 'global' });
+        } catch (err) {
+            return res.status(500).json({ message: 'Global ayar xətası' });
+        }
+    }
+
+    // Save for specific date
+    try {
+        await LessonSchedule.findOneAndUpdate(
+            { date },
+            { startTime, endTime },
+            { upsert: true, new: true }
+        );
+        res.json({ success: true, type: 'custom' });
+    } catch (err) {
+        res.status(500).json({ message: 'Tarix ayarı xətası' });
     }
 });
 
