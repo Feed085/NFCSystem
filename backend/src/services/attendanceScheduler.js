@@ -49,19 +49,9 @@ const checkAttendance = async () => {
         const timeStr = `${String(currentHours).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}`; // Baku time
 
         // Simple string compare for HH:MM works (e.g. "09:05" > "09:00")
+        // Simple string compare for HH:MM works (e.g. "09:05" > "09:00")
         if (timeStr < startTime) {
-            console.log(`⏳ Lesson hasn't started yet (${timeStr} < ${startTime}). Waiting...`);
-
-            // NEW: If time was changed to later, remove ALL records for today (absent, present, late)
-            // This effectively "resets" the day to waiting mode as requested.
-            const deleted = await Attendance.deleteMany({
-                date: todayStr
-            });
-
-            if (deleted.deletedCount > 0) {
-                console.log(`🔄 Resetting ${deleted.deletedCount} records (ALL statuses) due to schedule change/wait mode.`);
-            }
-
+            // console.log(`⏳ Lesson hasn't started yet (${timeStr} < ${startTime}). Waiting...`);
             return; // EXIT: Do not mark absent yet
         }
 
@@ -97,7 +87,16 @@ const checkAttendance = async () => {
     }
 };
 
-
+const resetDailyAttendance = async (dateStr) => {
+    try {
+        const deleted = await Attendance.deleteMany({ date: dateStr });
+        if (deleted.deletedCount > 0) {
+            console.log(`🔄 Resetting ${deleted.deletedCount} records for ${dateStr} due to schedule change.`);
+        }
+    } catch (e) {
+        console.error('Reset Error:', e);
+    }
+};
 
 const startScheduler = () => {
     // Run every minute to ensure we cover the time even if restart happens
@@ -106,4 +105,4 @@ const startScheduler = () => {
     console.log('📅 Attendance Scheduler Started (Runs every 1 min)');
 };
 
-module.exports = { startScheduler, checkAttendance };
+module.exports = { startScheduler, checkAttendance, resetDailyAttendance };

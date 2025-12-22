@@ -9,7 +9,7 @@ const StudentAuth = require('./models/StudentAuth');
 const Attendance = require('./models/Attendance');
 const SystemSettings = require('./models/SystemSettings');
 const LessonSchedule = require('./models/LessonSchedule');
-const { startScheduler, checkAttendance } = require('./services/attendanceScheduler');
+const { startScheduler, checkAttendance, resetDailyAttendance } = require('./services/attendanceScheduler');
 
 const app = express();
 const PORT = 5000;
@@ -451,6 +451,15 @@ app.get('/api/settings/schedule', async (req, res) => {
 app.post('/api/settings/schedule', async (req, res) => {
     const { date, startTime, endTime } = req.body;
 
+    // Helper to get today's date string (Baku) for global reset
+    const getBakuToday = () => {
+        const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Baku' }));
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     // If no date provided, save as global default
     if (!date) {
         try {
@@ -459,8 +468,12 @@ app.post('/api/settings/schedule', async (req, res) => {
                 { value: { lessonStartTime: startTime, lessonEndTime: endTime } },
                 { upsert: true, new: true }
             );
-            // Trigger check immediately to reset if needed
-            await checkAttendance();
+
+            // Trigger RESET for today because global settings changed
+            // This satisfies "reset if schedule changes"
+            await resetDailyAttendance(getBakuToday());
+            await checkAttendance(); // Re-run check to mark new absents if needed
+
             return res.json({ success: true, type: 'global' });
         } catch (err) {
             return res.status(500).json({ message: 'Global ayar xətası' });
@@ -474,8 +487,14 @@ app.post('/api/settings/schedule', async (req, res) => {
             { startTime, endTime },
             { upsert: true, new: true }
         );
-        // Trigger check immediately to reset if needed
-        await checkAttendance();
+
+        // Reset ONLY for the specific date provided
+        await resetDailyAttendance(date);
+        // If the date is 'today', we might want to re-check attendance immediately
+        if (date === getBakuToday()) {
+            await checkAttendance();
+        }
+
         res.json({ success: true, type: 'custom' });
     } catch (err) {
         res.status(500).json({ message: 'Tarix ayarı xətası' });
