@@ -6,14 +6,14 @@ import StudentDashboard from './pages/StudentDashboard';
 
 // Admin Protected Route
 const AdminRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  // Dizaynı görmək üçün giriş yoxlanışını müvəqqəti söndürürük
+  return children;
 };
 
 // Student Protected Route
 const StudentRoute = ({ children }) => {
-  const token = localStorage.getItem('studentToken');
-  return token ? children : <Navigate to="/login" replace />;
+  // Dizaynı görmək üçün giriş yoxlanışını müvəqqəti söndürürük
+  return children;
 };
 
 function App() {

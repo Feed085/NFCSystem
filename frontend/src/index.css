@@ -1,38 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
 :root {
-  --primary: #6366f1;
-  --secondary: #a855f7;
-  --bg-dark: #0f172a;
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --primary: #00f3ff;
+  /* Neon Cyan */
+  --secondary: #ff00ff;
+  /* Neon Pink */
+  --bg-dark: #050a14;
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(0, 243, 255, 0.2);
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
-  --success: #22c55e;
-  --error: #ef4444;
+  --success: #39ff14;
+  /* Neon Green */
+  --error: #ff3131;
+  /* Neon Red */
+  --neon-glow: 0 0 15px rgba(0, 243, 255, 0.3);
 }
 
 body {
   margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: #0f172a;
+  font-family: 'Outfit', sans-serif;
+  background-color: var(--bg-dark);
   color: var(--text-main);
   background-image:
-    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(0, 243, 255, 0.1) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(255, 0, 255, 0.1) 0px, transparent 50%);
   min-height: 100vh;
 }
 
-/* Glassmorphism Utilities */
+/* Glassmorphism with Electric Glow */
 .glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
-  border-radius: 16px;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), var(--neon-glow);
+  transition: all 0.3s ease;
+}
+
+.glass:hover {
+  border-color: rgba(0, 243, 255, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 25px rgba(0, 243, 255, 0.4);
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
 }
@@ -41,39 +54,54 @@ body {
   background: linear-gradient(135deg, var(--primary), var(--secondary));
   border: none;
   padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  color: white;
-  font-weight: 400;
+  border-radius: 14px;
+  color: #000;
+  font-weight: 700;
   cursor: pointer;
   letter-spacing: 0.5px;
+  font-family: 'Outfit', sans-serif;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.btn:hover {
+  box-shadow: 0 0 20px var(--primary), 0 0 40px var(--secondary);
+  transform: translateY(-2px);
+}
+
+.btn.cancel {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 .input-field {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.4);
   border: 1px solid var(--glass-border);
   padding: 0.75rem;
-  border-radius: 8px;
+  border-radius: 14px;
   color: white;
   width: 100%;
   box-sizing: border-box;
   margin-bottom: 1rem;
   outline: none;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 0.95rem;
   font-weight: 400;
   letter-spacing: 0.3px;
   line-height: 1.5;
-}
-
-.input-field::placeholder {
-  color: rgba(148, 163, 184, 0.5);
-  font-size: 0.85rem;
-  font-weight: 400;
-  letter-spacing: 0.2px;
+  transition: all 0.3s ease;
 }
 
 .input-field:focus {
   border-color: var(--primary);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+}
+
+.input-field::placeholder {
+  color: rgba(148, 163, 184, 0.3);
 }
 
 /* Animations */
@@ -89,6 +117,10 @@ body {
   }
 }
 
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -101,38 +133,7 @@ body {
   }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-/* Dashboard specific */
-.status-card {
-  padding: 2rem;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-.status-valid {
-  color: var(--success);
-  font-size: 1.5rem;
-  font-weight: bold;
-}
-
-.status-invalid {
-  color: var(--error);
-  font-size: 1.5rem;
-  font-weight: bold;
-}
-
-.nav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 0;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid var(--glass-border);
-}
-
+/* Electric Logo */
 .logo {
   font-size: 1.5rem;
   font-weight: 800;
@@ -140,4 +141,35 @@ body {
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.5));
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 10px;
+}
+
+/* Utility for Neon Glow Texts */
+.neon-text-primary {
+  color: var(--primary);
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+
+.neon-text-success {
+  color: var(--success);
+  text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
+}
+
+.neon-text-error {
+  color: var(--error);
+  text-shadow: 0 0 10px rgba(255, 49, 49, 0.5);
 }
