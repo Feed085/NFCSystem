@@ -51,6 +51,19 @@ const checkAttendance = async () => {
         // Simple string compare for HH:MM works (e.g. "09:05" > "09:00")
         if (timeStr < startTime) {
             console.log(`⏳ Lesson hasn't started yet (${timeStr} < ${startTime}). Waiting...`);
+
+            // NEW: If time was changed to later, remove previously auto-marked 'absent' records
+            // This effectively "resets" the day to waiting mode.
+            const deleted = await Attendance.deleteMany({
+                date: todayStr,
+                status: 'absent',
+                autoMarked: true
+            });
+
+            if (deleted.deletedCount > 0) {
+                console.log(`🔄 Resetting ${deleted.deletedCount} absent records due to schedule change.`);
+            }
+
             return; // EXIT: Do not mark absent yet
         }
 
