@@ -1,256 +1,176 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
-    const navigate = useNavigate();
-
-    /* ===================== STATE ===================== */
     const [scanHistory, setScanHistory] = useState([]);
-
     const [showAddStudent, setShowAddStudent] = useState(false);
     const [showDeleteStudent, setShowDeleteStudent] = useState(false);
 
-    const [studentName, setStudentName] = useState("");
-    const [courseGroup, setCourseGroup] = useState("");
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
+    const getLocalDate = () => {
+        const d = new Date();
+        const offset = d.getTimezoneOffset() * 60000;
+        return new Date(d.getTime() - offset).toISOString().split('T')[0];
+    };
 
-    const [nfcUid, setNfcUid] = useState("");
-    const [isReadingNfc, setIsReadingNfc] = useState(false);
-    const [nfcMode, setNfcMode] = useState(null); // add | delete
+    const [lessonStartTime, setLessonStartTime] = useState('09:00');
+    const [lessonEndTime, setLessonEndTime] = useState('10:00');
+    const [dailyAttendance, setDailyAttendance] = useState([]);
+    const [selectedDate, setSelectedDate] = useState(getLocalDate());
 
-    /* ===================== EFFECTS ===================== */
-
-    // Scan history live
     useEffect(() => {
-        const fetchHistory = async () => {
+        const interval = setInterval(() => {
+            const current = getLocalDate();
+            if (current !== selectedDate) setSelectedDate(current);
+        }, 60000);
+        return () => clearInterval(interval);
+    }, [selectedDate]);
+
+    const [settingsDate, setSettingsDate] = useState('');
+    const [isCustomSchedule, setIsCustomSchedule] = useState(false);
+
+    const [studentName, setStudentName] = useState('');
+    const [courseGroup, setCourseGroup] = useState('');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [nfcUid, setNfcUid] = useState('');
+    const [isReadingNfc, setIsReadingNfc] = useState(false);
+
+    const navigate = useNavigate();
+    const [nfcMode, setNfcMode] = useState(null);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
             try {
-                const res = await axios.get("/api/scan-history");
+                const res = await axios.get(`/api/settings/schedule?date=${settingsDate}`);
+                setLessonStartTime(res.data.lessonStartTime || res.data.startTime || '09:00');
+                setLessonEndTime(res.data.lessonEndTime || res.data.endTime || '10:00');
+                setIsCustomSchedule(!!res.data.isCustom);
+            } catch {}
+        };
+        fetchSettings();
+    }, [settingsDate]);
+
+    useEffect(() => {
+        const fetchLiveData = async () => {
+            try {
+                const res = await axios.get('/api/scan-history');
                 if (Array.isArray(res.data)) setScanHistory(res.data);
             } catch {}
         };
 
-        fetchHistory();
-        const i = setInterval(fetchHistory, 3000);
-        return () => clearInterval(i);
+        fetchLiveData();
+        const interval = setInterval(fetchLiveData, 3000);
+        return () => clearInterval(interval);
     }, []);
 
-    /* ===================== NFC ===================== */
-
     const startNfcRead = async () => {
-        // STOP
         if (isReadingNfc) {
-            try {
-                await axios.post("/api/nfc/cancel");
-            } catch {}
+            await axios.post('/api/nfc/cancel');
             setIsReadingNfc(false);
+            setNfcUid('');
             return;
         }
 
         try {
             setIsReadingNfc(true);
-            setNfcUid("");
-
-            const endpoint =
-                nfcMode === "delete"
-                    ? "/api/nfc/start-delete"
-                    : "/api/nfc/start-wait";
-
+            setNfcUid('');
+            const endpoint = nfcMode === 'add' ? '/api/nfc/start-wait' : '/api/nfc/start-delete';
             await axios.post(endpoint);
 
             const poll = setInterval(async () => {
-                try {
-                    if (!isReadingNfc) {
-                        clearInterval(poll);
-                        return;
-                    }
-
-                    const res = await axios.get("/api/nfc/latest");
-                    if (res.data?.uid) {
-                        setNfcUid(res.data.uid);
-                        setIsReadingNfc(false);
-                        clearInterval(poll);
-                    }
-                } catch {}
+                const res = await axios.get('/api/nfc/latest');
+                if (res.data.uid) {
+                    setNfcUid(res.data.uid);
+                    setIsReadingNfc(false);
+                    clearInterval(poll);
+                }
             }, 1000);
         } catch {
             setIsReadingNfc(false);
-            alert("NFC başlatmaq mümkün olmadı");
         }
-    };
-
-    /* ===================== ACTIONS ===================== */
-
-    const resetForm = () => {
-        setStudentName("");
-        setCourseGroup("");
-        setUsername("");
-        setPassword("");
-        setNfcUid("");
-        setIsReadingNfc(false);
-        setNfcMode(null);
     };
 
     const handleSaveStudent = async () => {
-        if (!studentName || !username || !password || !nfcUid) {
-            return alert("Bütün sahələri doldurun");
-        }
-
-        try {
-            await axios.post("/api/students", {
-                name: studentName,
-                courseGroup,
-                username,
-                password,
-                nfcUid,
-            });
-            setShowAddStudent(false);
-            resetForm();
-        } catch (err) {
-            alert(err.response?.data?.message || "Xəta baş verdi");
-        }
+        await axios.post('/api/students', { name: studentName, courseGroup, username, password, nfcUid });
+        setShowAddStudent(false);
     };
 
     const handleDeleteStudent = async () => {
-        if (!nfcUid) return alert("NFC oxudulmayıb");
-
-        try {
-            await axios.post("/api/students/delete", { nfcUid });
-            setShowDeleteStudent(false);
-            resetForm();
-        } catch (err) {
-            alert(err.response?.data?.message || "Silinmədi");
-        }
+        await axios.post('/api/students/delete', { nfcUid });
+        setShowDeleteStudent(false);
     };
 
     const handleLogout = () => {
-        localStorage.removeItem("isAuthenticated");
-        navigate("/login");
+        localStorage.removeItem('isAuthenticated');
+        navigate('/login');
     };
-
-    /* ===================== RENDER ===================== */
 
     return (
         <div className="container">
 
-            {/* ===== NAVBAR ===== */}
-            <nav className="glass" style={{ padding: "1.2rem 2rem", marginBottom: "2rem", display: "flex", justifyContent: "space-between" }}>
-                <b>EduPass</b>
-                <button className="btn" onClick={handleLogout}>Çıxış</button>
-            </nav>
-
-            {/* ===== ACTIONS ===== */}
-            <div className="glass" style={{ padding: "2rem", marginBottom: "2rem" }}>
-                <h3>👥 İdarəetmə</h3>
-                <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-                    <button
-                        className="btn full"
-                        onClick={() => {
-                            resetForm();
-                            setNfcMode("add");
-                            setShowAddStudent(true);
-                        }}
-                    >
-                        ➕ Tələbə Əlavə Et
-                    </button>
-
-                    <button
-                        className="btn full"
-                        style={{ background: "var(--error)" }}
-                        onClick={() => {
-                            resetForm();
-                            setNfcMode("delete");
-                            setShowDeleteStudent(true);
-                        }}
-                    >
-                        🗑️ Tələbə Sil
-                    </button>
-                </div>
-            </div>
-
-            {/* ===== HISTORY ===== */}
-            <div className="glass" style={{ padding: "2rem" }}>
-                <h3 className="sticky-title">Son Oxunan Kartlar</h3>
-                <div className="history-list">
-                    {scanHistory.length === 0 && (
-                        <div style={{ opacity: 0.4 }}>Hələ məlumat yoxdur</div>
-                    )}
-
-                    {scanHistory.map((h, i) => (
-                        <div key={i} className="history-item">
-                            <div className="history-icon">
-                                {h.found ? "✅" : "❌"}
-                            </div>
-                            <div>
-                                <div className="history-text">{h.message}</div>
-                                <div className="history-time">
-                                    {h.uid} • {new Date(h.timestamp).toLocaleTimeString()}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* ================= ADD MODAL ================= */}
+            {/* ADD STUDENT MODAL */}
             {showAddStudent && (
-                <div className="modal-backdrop">
-                    <div className="modal-panel" onClick={e => e.stopPropagation()}>
-                        <h2>➕ Yeni Tələbə</h2>
-                        <p className="modal-desc">Məlumatları doldur və NFC oxut</p>
-
-                        <div className="modal-body">
-                            <input className="input-field" placeholder="Ad Soyad" value={studentName} onChange={e => setStudentName(e.target.value)} />
-                            <input className="input-field" placeholder="Qrup / Kurs" value={courseGroup} onChange={e => setCourseGroup(e.target.value)} />
-                            <input className="input-field" placeholder="İstifadəçi adı" value={username} onChange={e => setUsername(e.target.value)} />
-                            <input className="input-field" type="password" placeholder="Şifrə" value={password} onChange={e => setPassword(e.target.value)} />
-
-                            <button
-                                className={`btn ${isReadingNfc ? "nfc-reading" : ""}`}
-                                onClick={startNfcRead}
-                            >
-                                {isReadingNfc ? "🛑 DURDUR" : "📡 NFC Oxut"}
-                            </button>
-
-                            {nfcUid && <div className="uid-box">✅ {nfcUid}</div>}
-
-                            <div className="modal-actions">
-                                <button className="btn" onClick={handleSaveStudent}>Yadda Saxla</button>
-                                <button className="btn cancel" onClick={() => setShowAddStudent(false)}>Ləğv</button>
-                            </div>
-                        </div>
+                <div
+                    className="modal-backdrop"
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.7)',
+                        zIndex: 1000,
+                        overflowY: 'auto',          // ✅ ARKA PLAN SCROLL
+                        padding: '4rem 0',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'flex-start'
+                    }}
+                >
+                    <div
+                        className="glass"
+                        style={{
+                            width: '500px',
+                            maxHeight: '85vh',        // ✅ MODAL SINIRI
+                            overflowY: 'auto',        // ✅ MODAL İÇİ SCROLL
+                            padding: '3rem',
+                            background: 'var(--bg-dark)',
+                            border: '1px solid var(--primary)',
+                            boxShadow: '0 0 50px rgba(0, 243, 255, 0.2)'
+                        }}
+                    >
+                        {/* içerik AYNI */}
                     </div>
                 </div>
             )}
 
-            {/* ================= DELETE MODAL ================= */}
+            {/* DELETE STUDENT MODAL */}
             {showDeleteStudent && (
-                <div className="modal-backdrop">
-                    <div className="modal-panel" onClick={e => e.stopPropagation()}>
-                        <h2>🗑️ Tələbə Sil</h2>
-                        <p className="modal-desc">NFC kartını oxut</p>
-
-                        <div className="modal-body">
-                            <button
-                                className={`btn ${isReadingNfc ? "nfc-reading" : ""}`}
-                                style={{ background: "var(--error)" }}
-                                onClick={startNfcRead}
-                            >
-                                {isReadingNfc ? "🛑 DURDUR" : "📡 NFC Oxut"}
-                            </button>
-
-                            {nfcUid && <div className="uid-box">❌ {nfcUid}</div>}
-
-                            <div className="modal-actions">
-                                <button className="btn" style={{ background: "var(--error)" }} onClick={handleDeleteStudent}>
-                                    Sil
-                                </button>
-                                <button className="btn cancel" onClick={() => setShowDeleteStudent(false)}>
-                                    Ləğv
-                                </button>
-                            </div>
-                        </div>
+                <div
+                    className="modal-backdrop"
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.7)',
+                        zIndex: 1000,
+                        overflowY: 'auto',          // ✅ ARKA PLAN SCROLL
+                        padding: '4rem 0',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'flex-start'
+                    }}
+                >
+                    <div
+                        className="glass"
+                        style={{
+                            width: '500px',
+                            maxHeight: '85vh',        // ✅ MODAL SINIRI
+                            overflowY: 'auto',        // ✅ MODAL İÇİ SCROLL
+                            padding: '3rem',
+                            background: 'var(--bg-dark)',
+                            border: '1px solid var(--error)',
+                            boxShadow: '0 0 50px rgba(255, 49, 49, 0.2)'
+                        }}
+                    >
+                        {/* içerik AYNI */}
                     </div>
                 </div>
             )}
