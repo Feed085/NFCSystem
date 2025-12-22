@@ -287,7 +287,12 @@ const Dashboard = () => {
                             <tbody>
                                 {dailyAttendance.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', opacity: 0.5 }}>Bu tarix üçün məlumat yoxdur.</td>
+                                        <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', opacity: 0.5 }}>
+                                            {/* Check if it's before lesson start to show "Waiting" */}
+                                            {new Date().toTimeString().slice(0, 5) < lessonStartTime ?
+                                                '⏳ Dərs Gözlənilir...' :
+                                                'Bu tarix üçün məlumat yoxdur.'}
+                                        </td>
                                     </tr>
                                 ) : (
                                     dailyAttendance.map((record, i) => (

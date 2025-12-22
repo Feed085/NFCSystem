@@ -4,7 +4,10 @@ const Attendance = require('../models/Attendance');
 const SystemSettings = require('../models/SystemSettings');
 
 // Default lesson time if not set
-const DEFAULT_START_TIME = '09:00:';
+const LessonSchedule = require('../models/LessonSchedule');
+
+// Default lesson time if not set
+const DEFAULT_START_TIME = '09:00';
 
 // Helper for Baku Time
 const getBakuDate = () => new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Baku' }));
@@ -21,25 +24,37 @@ const checkAttendance = async () => {
     console.log('⏰ Running daily attendance check (Baku Time)...');
 
     try {
-        // 1. Get Lesson Start Time
-        const settings = await SystemSettings.findOne({ key: 'lessonInfo' });
-        const startTime = settings?.value?.lessonStartTime || DEFAULT_START_TIME;
+        const todayStr = getTodayDateString(); // Baku date
+
+        // 1. Get Effective Lesson Start Time
+        let startTime = DEFAULT_START_TIME;
+
+        // Try specific schedule
+        try {
+            const schedule = await LessonSchedule.findOne({ date: todayStr });
+            if (schedule) startTime = schedule.startTime;
+            else {
+                // Fallback global
+                const settings = await SystemSettings.findOne({ key: 'lessonInfo' });
+                if (settings?.value?.lessonStartTime) startTime = settings.value.lessonStartTime;
+            }
+        } catch (e) {
+            console.error('Scheduler settings fetch error:', e);
+        }
 
         // 2. Check if current BAKU time is past start time
         const nowBaku = getBakuDate();
         const currentHours = nowBaku.getHours();
         const currentMinutes = nowBaku.getMinutes();
-        const currentTimeVal = currentHours * 60 + currentMinutes;
-
-        const [startHours, startMinutes] = startTime.split(':').map(Number);
-        const startTimeVal = startHours * 60 + startMinutes;
-
-        // "Too early" check removed as per user request
-        // The system will now mark absent students whenever this job runs, 
-        // regardless of the defined lesson start time.
-
-        const todayStr = getTodayDateString(); // Baku date
         const timeStr = `${String(currentHours).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}`; // Baku time
+
+        // Simple string compare for HH:MM works (e.g. "09:05" > "09:00")
+        if (timeStr < startTime) {
+            console.log(`⏳ Lesson hasn't started yet (${timeStr} < ${startTime}). Waiting...`);
+            return; // EXIT: Do not mark absent yet
+        }
+
+        console.log(`🔔 Lesson started (${timeStr} >= ${startTime}). Marking absents...`);
 
         // 3. Find all students
         const allStudents = await Student.find({});
@@ -51,8 +66,7 @@ const checkAttendance = async () => {
                 date: todayStr
             });
 
-            // 5. If NO record exists, mark as ABSENT
-            // (If they already scanned, exists will be true, so we skip)
+            // 5. If NO record exists, mark as ABSENT because lesson has started
             if (!exists) {
                 console.log(`❌ Marking Absent: ${student.name}`);
                 await Attendance.create({
@@ -71,6 +85,8 @@ const checkAttendance = async () => {
         console.error('Attendance Check Error:', err);
     }
 };
+
+
 
 const startScheduler = () => {
     // Run every 5 minutes to ensure we cover the time even if restart happens
