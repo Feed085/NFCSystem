@@ -66,7 +66,7 @@ const Login = () => {
                 }}>
                     <img
                         src="/login-bg.png"
-                        alt="NFC System"
+                        alt="EduPass"
                         style={{
                             width: '100%',
                             height: '100%',

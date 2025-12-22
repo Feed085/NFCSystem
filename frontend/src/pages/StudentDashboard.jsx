@@ -1,28 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './Dashboard.css'; // Reusing same styles
 
 const StudentDashboard = () => {
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState({
+        name: "Yüklənir...",
+        username: "...",
+        nfcUid: "..."
+    });
     const [history, setHistory] = useState([]);
+    const [isScanning, setIsScanning] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Load user from local storage
         const storedUser = localStorage.getItem('studentUser');
         const token = localStorage.getItem('studentToken');
 
-        if (!storedUser || !token) {
-            navigate('/login');
-            return;
+        if (storedUser && token) {
+            try {
+                setUser(JSON.parse(storedUser));
+                fetchData(token);
+                const interval = setInterval(() => fetchData(token), 3000);
+                return () => clearInterval(interval);
+            } catch (e) {
+                console.error('Data error:', e);
+            }
+        } else {
+            // Dizaynı görmək üçün yönləndirməni söndürürük və mock data ilə davam edirik
+            setUser({
+                name: "Nümunə Tələbə",
+                username: "telebe01",
+                nfcUid: "0x4A 0xB2 0xC9 0xD1"
+            });
         }
-
-        setUser(JSON.parse(storedUser));
-        fetchData(token);
-
-        const interval = setInterval(() => fetchData(token), 3000);
-        return () => clearInterval(interval);
     }, [navigate]);
 
     const fetchData = async (token) => {
@@ -30,83 +40,140 @@ const StudentDashboard = () => {
             const res = await axios.get('/api/student/me', {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setHistory(res.data.history);
+            const newHistory = res.data.history || [];
+
+            // Əgər yeni bir giriş gəlibsə, qısa müddətli "Scanning" effekti yaradırıq
+            if (newHistory.length > history.length && history.length > 0) {
+                setIsScanning(true);
+                setTimeout(() => setIsScanning(false), 3000);
+            }
+            setHistory(newHistory);
         } catch (err) {
-            console.error('Fetch error:', err);
-            if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-                handleLogout();
+            if (err.response?.status === 401) {
+                localStorage.clear();
+                navigate('/login');
             }
         }
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('studentToken');
-        localStorage.removeItem('studentUser');
+        localStorage.clear();
         navigate('/login');
     };
 
-    if (!user) return <div className="container" style={{ color: 'white' }}>Yüklənir...</div>;
-
     return (
-        <div className="container animate-fade-in">
+        <div className="container animate-fade-in" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
             {/* NAVBAR */}
-            <nav className="nav glass" style={{ padding: '1rem 2rem' }}>
-                <div className="logo">Tələbə Paneli</div>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>{user.name}</span>
-                    <button
-                        onClick={handleLogout}
-                        className="btn"
-                        style={{ background: 'transparent', border: '1px solid var(--text-muted)' }}
-                    >
-                        Çıxış
-                    </button>
+            <nav className="nav glass" style={{ padding: '1.2rem 2.5rem', borderRadius: '20px', marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="logo" style={{ fontSize: '1.8rem', fontWeight: 800 }}>EduPass</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                    <div className="neon-text-primary" style={{ fontWeight: 600, fontSize: '1rem' }}>{user.name}</div>
+                    <button onClick={handleLogout} className="btn" style={{ padding: '0.6rem 1.5rem', borderRadius: '12px', fontSize: '0.8rem' }}>Çıxış</button>
                 </div>
             </nav>
 
-            <div style={{ display: 'grid', gap: '2rem', marginTop: '2rem' }}>
+            {/* BIG STATUS DISPLAY (Initial design style where name appears vividly) */}
+            <div className={`glass ${isScanning ? 'nfc-reading' : ''}`} style={{
+                padding: '4rem 2rem',
+                textAlign: 'center',
+                borderRadius: '40px',
+                marginBottom: '3rem',
+                background: isScanning ? 'rgba(0, 243, 255, 0.05)' : 'rgba(255, 255, 255, 0.02)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                {isScanning && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '4px', background: 'var(--primary)', boxShadow: '0 0 20px var(--primary)' }} />}
 
-                {/* INFO CARD */}
-                <div className="glass panel">
-                    <h3>👤 Mənim Məlumatlarım</h3>
-                    <div style={{ marginTop: '1rem', display: 'grid', gap: '0.5rem' }}>
-                        <div><b>Ad Soyad:</b> {user.name}</div>
-                        <div><b>İstifadəçi Adı:</b> {user.username}</div>
-                        <div><b>NFC UID:</b> {user.nfcUid}</div>
+                <div style={{ fontSize: '1rem', color: 'var(--text-muted)', letterSpacing: '4px', marginBottom: '1.5rem', fontWeight: 500 }}>SİSTEM AKTİVDİR</div>
+
+                <h1 style={{
+                    fontSize: '4.5rem',
+                    margin: '0 0 1rem 0',
+                    fontWeight: 800,
+                    textShadow: isScanning ? '0 0 30px var(--primary)' : '0 0 10px rgba(255,255,255,0.2)',
+                    color: isScanning ? 'var(--primary)' : 'white',
+                    transition: 'all 0.5s ease'
+                }}>
+                    {isScanning ? user.name : "Xoş Gəldiniz!"}
+                </h1>
+
+                <p style={{ fontSize: '1.2rem', color: isScanning ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 400 }}>
+                    {isScanning ? "Girişiniz uğurla qeydə alındı ⚡" : "Davamiyyəti yoxlamaq üçün kartınızı oxudun"}
+                </p>
+
+                <div style={{ marginTop: '2.5rem', display: 'flex', justifyContent: 'center', gap: '3rem' }}>
+                    <div className="glass" style={{ padding: '1rem 2.5rem', borderRadius: '20px', border: '1px solid rgba(0, 243, 255, 0.1)' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--primary)', opacity: 0.7, marginBottom: '0.3rem' }}>CARD ID</div>
+                        <div style={{ fontWeight: 700, fontFamily: 'monospace', fontSize: '1.1rem' }}>{user.nfcUid}</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* DETAILS GRID */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+
+                {/* RECENT ACTIVITY PANEL */}
+                <div className="glass" style={{ padding: '2.5rem', borderRadius: '32px', height: '500px', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                        <h3 style={{ margin: 0, fontSize: '1.4rem' }}>Son Girişlər</h3>
+                        <div className="neon-text-success" style={{ fontSize: '0.85rem', fontWeight: 700 }}>CANLI 📡</div>
+                    </div>
+
+                    <div style={{ flex: 1, overflowY: 'auto' }} className="custom-scrollbar">
+                        {history.length === 0 ? (
+                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3, fontSize: '1rem' }}>Heç bir qeyd yoxdur</div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {[...history].reverse().map((scan, index) => (
+                                    <div key={index} className="glass" style={{
+                                        padding: '1.2rem',
+                                        borderRadius: '18px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '1.5rem',
+                                        background: 'rgba(255,255,255,0.01)',
+                                        border: '1px solid rgba(255,255,255,0.05)'
+                                    }}>
+                                        <div style={{
+                                            width: '40px', height: '40px', borderRadius: '12px',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            background: 'rgba(57, 255, 20, 0.1)', color: 'var(--success)',
+                                            fontSize: '1rem'
+                                        }}>✓</div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Sistemə Giriş</div>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Məkan: Əsas Giriş</div>
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                                            {new Date(scan.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* HISTORY */}
-                <div className="glass status-card" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                    <h2 className="sticky-title">Giriş Tarixçəm</h2>
+                {/* PROFILE & QUICK STATS */}
+                <div className="glass" style={{ padding: '2.5rem', borderRadius: '32px' }}>
+                    <h3 style={{ marginBottom: '2rem', fontSize: '1.4rem' }}>Mənim Profilim</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        <div className="glass" style={{ padding: '1.5rem', borderRadius: '24px', background: 'rgba(0, 243, 255, 0.02)' }}>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--primary)', marginBottom: '0.4rem', letterSpacing: '1px' }}>İSTİFADƏÇİ ADI</div>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 600 }}>{user.username}</div>
+                        </div>
 
-                    {history.length === 0 ? (
-                        <div style={{ padding: '2rem', color: 'var(--text-muted)' }}>
-                            Hələ heç bir giriş qeydə alınmayıb.
+                        <div className="glass" style={{ padding: '1.5rem', borderRadius: '24px', background: 'rgba(255, 255, 255, 0.02)' }}>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', letterSpacing: '1px' }}>KURS / QRUP</div>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 600 }}>İnformasiya Texnologiyaları</div>
                         </div>
-                    ) : (
-                        <div className="history-list">
-                            {history.map((scan, index) => (
-                                <div
-                                    key={index}
-                                    className="glass history-item"
-                                    style={{
-                                        borderLeft: `5px solid ${scan.found ? 'var(--primary)' : 'var(--error)'}`
-                                    }}
-                                >
-                                    <div className="history-icon">
-                                        {scan.found ? '✅' : '❌'}
-                                    </div>
-                                    <div>
-                                        <div className="history-text">{scan.message}</div>
-                                        <div className="history-time">
-                                            {new Date(scan.timestamp).toLocaleString()}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+
+                        <div style={{ marginTop: '1rem', padding: '1.5rem', borderRadius: '24px', background: 'linear-gradient(135deg, rgba(0, 243, 255, 0.1), rgba(255, 0, 255, 0.1))', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>BU AYKI AKTİVLİK</div>
+                            <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary)' }}>94%</div>
+                            <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Əla göstərici! ⚡</div>
                         </div>
-                    )}
+                    </div>
                 </div>
 
             </div>
