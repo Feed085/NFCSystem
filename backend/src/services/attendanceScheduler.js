@@ -22,20 +22,24 @@ const checkAttendance = async () => {
         const settings = await SystemSettings.findOne({ key: 'lessonInfo' });
         const startTime = settings?.value?.lessonStartTime || DEFAULT_START_TIME;
 
-        // 2. Check if current time is past start time + buffer (e.g. 1 min)
+        // 2. Check if current time is past start time
         const now = new Date();
-        const [hours, minutes] = startTime.split(':').map(Number);
+        const currentHours = now.getHours();
+        const currentMinutes = now.getMinutes();
+        const currentTimeVal = currentHours * 60 + currentMinutes;
 
-        const lessonDate = new Date();
-        lessonDate.setHours(hours, minutes, 0, 0);
+        const [startHours, startMinutes] = startTime.split(':').map(Number);
+        const startTimeVal = startHours * 60 + startMinutes;
 
-        // Only run if we are past the start time
-        if (now < lessonDate) {
-            console.log('⏳ Too early for attendance check. Waiting for ' + startTime);
+        // If current time is LESS than start time, do nothing (wait for lesson to start)
+        if (currentTimeVal < startTimeVal) {
+            console.log(`⏳ Too early for attendance check. Current: ${currentHours}:${currentMinutes}, Start: ${startTime}`);
             return;
         }
 
         const todayStr = getTodayDateString();
+        // Format time as HH:mm
+        const timeStr = `${String(currentHours).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}`;
 
         // 3. Find all students
         const allStudents = await Student.find({});
@@ -48,12 +52,14 @@ const checkAttendance = async () => {
             });
 
             // 5. If NO record exists, mark as ABSENT
+            // (If they already scanned, exists will be true, so we skip)
             if (!exists) {
                 console.log(`❌ Marking Absent: ${student.name}`);
                 await Attendance.create({
                     studentId: student._id,
-                    nfcUid: student.nfcData,
+                    nfcUid: student.nfcData || 'NO_CARD',
                     date: todayStr,
+                    time: timeStr,
                     status: 'absent',
                     autoMarked: true
                 });

@@ -248,12 +248,13 @@ const Dashboard = () => {
                                     <th style={{ padding: '1rem' }}>Qrup</th>
                                     <th style={{ padding: '1rem' }}>Status</th>
                                     <th style={{ padding: '1rem' }}>Saat</th>
+                                    <th style={{ padding: '1rem' }}>Qeyd</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {dailyAttendance.length === 0 ? (
                                     <tr>
-                                        <td colSpan="4" style={{ padding: '2rem', textAlign: 'center', opacity: 0.5 }}>Bu tarix üçün məlumat yoxdur.</td>
+                                        <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', opacity: 0.5 }}>Bu tarix üçün məlumat yoxdur.</td>
                                     </tr>
                                 ) : (
                                     dailyAttendance.map((record, i) => (
@@ -274,8 +275,11 @@ const Dashboard = () => {
                                                         record.status === 'late' ? 'Gecikib' : 'Qayıb'}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '1rem', opacity: 0.7 }}>
-                                                {record.scanTime ? new Date(record.scanTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
+                                            <td style={{ padding: '1rem', opacity: 0.9, fontWeight: 500 }}>
+                                                {record.time || '-'}
+                                            </td>
+                                            <td style={{ padding: '1rem', fontSize: '0.8rem', opacity: 0.7 }}>
+                                                {record.autoMarked ? '🤖 Avto' : '👤 Manual'}
                                             </td>
                                         </tr>
                                     ))

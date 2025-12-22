@@ -159,7 +159,7 @@ const StudentDashboard = () => {
                                             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{scan.date}</div>
                                         </div>
                                         <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>
-                                            {scan.scanTime ? new Date(scan.scanTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
+                                            {scan.time || '-'}
                                         </div>
                                     </div>
                                 ))}

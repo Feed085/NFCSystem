@@ -191,6 +191,7 @@ app.post('/api/check-nfc', async (req, res) => {
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
             const todayStr = `${year}-${month}-${day}`;
+            const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
             let attRecord = await Attendance.findOne({ studentId: student._id, date: todayStr });
 
@@ -202,13 +203,16 @@ app.post('/api/check-nfc', async (req, res) => {
                     studentId: student._id,
                     nfcUid: nfcData,
                     date: todayStr,
+                    time: timeStr,   // NEW: Save HH:mm
                     status: 'present',
-                    scanTime: new Date()
+                    scanTime: new Date(),
+                    autoMarked: false
                 });
             } else if (attRecord.status === 'absent') {
                 // Was marked absent -> Change to Late
                 attRecord.status = 'late';
                 attRecord.scanTime = new Date();
+                attRecord.time = timeStr; // Update time to actual scan time
                 attRecord.autoMarked = false; // Override auto mark
                 await attRecord.save();
                 statusMessage = 'Gecikdi';
