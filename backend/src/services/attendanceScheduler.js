@@ -4,7 +4,7 @@ const Attendance = require('../models/Attendance');
 const SystemSettings = require('../models/SystemSettings');
 
 // Default lesson time if not set
-const DEFAULT_START_TIME = '17:57:';
+const DEFAULT_START_TIME = '09:00:';
 
 // Helper for Baku Time
 const getBakuDate = () => new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Baku' }));
