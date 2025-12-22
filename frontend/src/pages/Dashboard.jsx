@@ -257,52 +257,55 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* NEW ROW: ATTENDANCE & SETTINGS */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '3rem' }}>
+            {/* ATTENDANCE & SETTINGS GRID */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '2.5rem', marginTop: '3rem', marginBottom: '4rem' }}>
 
                 {/* DAILY ATTENDANCE LIST */}
-                <div className="glass" style={{ padding: '2.5rem', borderRadius: '32px', minHeight: '500px' }}>
+                <div className="glass" style={{ padding: '2rem', borderRadius: '32px', minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                        <h3 style={{ fontSize: '1.6rem', margin: 0 }}>📅 Gündəlik Yoxlama</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                            <span style={{ fontSize: '1.5rem' }}>📅</span>
+                            <h3 style={{ fontSize: '1.4rem', fontWeight: 600, margin: 0 }}>Gündəlik Yoxlama</h3>
+                        </div>
                         <input
                             type="date"
                             className="input-field"
-                            style={{ width: 'auto' }}
+                            style={{ width: 'auto', padding: '0.6rem 1rem', fontSize: '0.9rem' }}
                             value={selectedDate}
                             onChange={(e) => setSelectedDate(e.target.value)}
                         />
                     </div>
 
-                    <div style={{ overflowX: 'auto' }}>
+                    <div style={{ flex: 1, overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
-                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'left' }}>
+                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'left', opacity: 0.6, fontSize: '0.85rem' }}>
                                     <th style={{ padding: '1rem' }}>Tələbə</th>
-                                    <th style={{ padding: '1rem' }}>Qrup</th>
                                     <th style={{ padding: '1rem' }}>Status</th>
                                     <th style={{ padding: '1rem' }}>Saat</th>
-                                    <th style={{ padding: '1rem' }}>Qeyd</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {dailyAttendance.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', opacity: 0.5 }}>
-                                            {/* Check if it's before lesson start to show "Waiting" */}
+                                        <td colSpan="3" style={{ padding: '3rem', textAlign: 'center', opacity: 0.4 }}>
                                             {new Date().toTimeString().slice(0, 5) < lessonStartTime ?
                                                 '⏳ Dərs Gözlənilir...' :
-                                                'Bu tarix üçün məlumat yoxdur.'}
+                                                'Məlumat tapılmadı.'}
                                         </td>
                                     </tr>
                                 ) : (
                                     dailyAttendance.map((record, i) => (
-                                        <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                            <td style={{ padding: '1rem' }}>{record.studentName || record.studentId?.name}</td>
-                                            <td style={{ padding: '1rem' }}>{record.courseGroup || '-'}</td>
+                                        <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.95rem' }}>
+                                            <td style={{ padding: '1rem' }}>
+                                                <div style={{ fontWeight: 500 }}>{record.studentName || record.studentId?.name}</div>
+                                                <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>{record.courseGroup || '-'}</div>
+                                            </td>
                                             <td style={{ padding: '1rem' }}>
                                                 <span style={{
-                                                    padding: '0.4rem 1rem',
-                                                    borderRadius: '12px',
+                                                    padding: '0.3rem 0.8rem',
+                                                    borderRadius: '10px',
+                                                    fontSize: '0.8rem',
                                                     background: record.status === 'present' ? 'rgba(57, 255, 20, 0.1)' :
                                                         record.status === 'late' ? 'rgba(255, 165, 0, 0.1)' : 'rgba(255, 49, 49, 0.1)',
                                                     color: record.status === 'present' ? 'var(--success)' :
@@ -313,11 +316,8 @@ const Dashboard = () => {
                                                         record.status === 'late' ? 'Gecikib' : 'Qayıb'}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '1rem', opacity: 0.9, fontWeight: 500 }}>
-                                                {record.time || '-'}
-                                            </td>
-                                            <td style={{ padding: '1rem', fontSize: '0.8rem', opacity: 0.7 }}>
-                                                {record.autoMarked ? '🤖 Avto' : '👤 Manual'}
+                                            <td style={{ padding: '1rem', opacity: 0.9, fontSize: '0.9rem' }}>
+                                                {record.time || '--:--'}
                                             </td>
                                         </tr>
                                     ))
@@ -327,63 +327,84 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* SETTINGS PANEL */}
-                <div className="glass" style={{ padding: '2.5rem', borderRadius: '32px', height: 'fit-content' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                        <h3 style={{ color: 'var(--primary)', fontSize: '1.4rem', margin: 0 }}>⚙️ Dərs Saatları</h3>
-                        {/* Status Badge */}
-                        <div style={{
-                            padding: '0.3rem 0.8rem',
-                            borderRadius: '8px',
-                            fontSize: '0.8rem',
-                            background: isCustomSchedule ? 'rgba(0, 243, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                            color: isCustomSchedule ? 'var(--primary)' : 'var(--text-muted)',
-                            border: isCustomSchedule ? '1px solid currentColor' : 'none'
-                        }}>
-                            {isCustomSchedule ? 'Xüsusi (Bu Tarix)' : 'Standart (Hər Gün)'}
+                {/* LESSON SETTINGS PANEL - REDESIGNED */}
+                <div className="glass" style={{ padding: '2.5rem', borderRadius: '32px', height: 'fit-content', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
+                        <div style={{ width: '50px', height: '50px', background: 'rgba(0, 243, 255, 0.1)', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>⚙️</div>
+                        <div style={{ flex: 1 }}>
+                            <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 600 }}>Dərs Saatları</h3>
+                            <div style={{ fontSize: '0.8rem', opacity: 0.6, marginTop: '0.2rem' }}>Sistem timer ayarları</div>
                         </div>
+                        {isCustomSchedule ? (
+                            <div style={{ padding: '0.3rem 0.8rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, background: 'var(--primary)', color: 'black' }}>XÜSUSİ</div>
+                        ) : (
+                            <div style={{ padding: '0.3rem 0.8rem', borderRadius: '8px', fontSize: '0.75rem', border: '1px solid rgba(255,255,255,0.2)', opacity: 0.6 }}>STANDART</div>
+                        )}
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
-                        {/* Date Picker */}
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', opacity: 0.7 }}>Tarix Seç (Standart üçün boş burax)</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        {/* Custom Date Selector */}
+                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.8rem', fontSize: '0.85rem', fontWeight: 500, color: 'var(--primary)' }}>
+                                📅 Məqsəd Tarix
+                            </label>
                             <input
                                 type="date"
                                 className="input-field"
+                                style={{ background: 'rgba(0,0,0,0.2)' }}
                                 value={settingsDate}
                                 onChange={(e) => setSettingsDate(e.target.value)}
                             />
+                            <div style={{ fontSize: '0.75rem', marginTop: '0.6rem', opacity: 0.5 }}>Boş buraxdıqda hər gün üçün keçərli olur.</div>
                         </div>
 
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', opacity: 0.7 }}>Dərs Başlama Saatı</label>
-                            <input
-                                type="time"
-                                className="input-field"
-                                value={lessonStartTime}
-                                onChange={(e) => setLessonStartTime(e.target.value)}
-                            />
+                        {/* Time Range Selector */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem' }}>
+                            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.8rem', fontSize: '0.85rem', fontWeight: 500, color: '#10b981' }}>
+                                    🕒 Başlama
+                                </label>
+                                <input
+                                    type="time"
+                                    className="input-field"
+                                    style={{ background: 'rgba(0,0,0,0.2)', fontSize: '1.1rem', fontWeight: 600 }}
+                                    value={lessonStartTime}
+                                    onChange={(e) => setLessonStartTime(e.target.value)}
+                                />
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.8rem', fontSize: '0.85rem', fontWeight: 500, color: '#ff5f5f' }}>
+                                    🕒 Bitmə
+                                </label>
+                                <input
+                                    type="time"
+                                    className="input-field"
+                                    style={{ background: 'rgba(0,0,0,0.2)', fontSize: '1.1rem', fontWeight: 600 }}
+                                    value={lessonEndTime}
+                                    onChange={(e) => setLessonEndTime(e.target.value)}
+                                />
+                            </div>
                         </div>
 
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', opacity: 0.7 }}>Dərs Bitmə Saatı</label>
-                            <input
-                                type="time"
-                                className="input-field"
-                                value={lessonEndTime}
-                                onChange={(e) => setLessonEndTime(e.target.value)}
-                            />
-                        </div>
-
-                        <button className="btn" onClick={handleSaveSettings} style={{ marginTop: '1rem' }}>
-                            💾 Yadda Saxla
+                        <button className="btn" onClick={handleSaveSettings} style={{
+                            width: '100%',
+                            padding: '1.2rem',
+                            borderRadius: '20px',
+                            fontSize: '1rem',
+                            fontWeight: 700,
+                            letterSpacing: '1px',
+                            boxShadow: '0 10px 20px rgba(0, 243, 255, 0.15)',
+                            marginTop: '0.5rem'
+                        }}>
+                            💾 PARAMETRLƏRİ YADDA SAXLA
                         </button>
                     </div>
 
-                    <div style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', fontSize: '0.9rem', opacity: 0.8 }}>
-                        ℹ️ Sistem avtomatik olaraq hər gün <b>{lessonStartTime}</b>-dan sonra dərsə gəlməyənləri "Qayıb" yazacaq.
+                    <div style={{ marginTop: '2.5rem', padding: '1.2rem', background: 'rgba(255, 243, 0, 0.05)', borderRadius: '20px', border: '1px solid rgba(255, 243, 0, 0.1)', display: 'flex', gap: '1rem' }}>
+                        <span style={{ fontSize: '1.2rem' }}>ℹ️</span>
+                        <div style={{ fontSize: '0.8rem', opacity: 0.8, lineHeight: '1.4' }}>
+                            Sistem hər gün səhər saat <b>{lessonStartTime}</b>-dan sonra gəlməyənləri avtomatik qeyd edir.
+                        </div>
                     </div>
                 </div>
             </div>
