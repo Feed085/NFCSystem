@@ -34,11 +34,9 @@ const checkAttendance = async () => {
         const [startHours, startMinutes] = startTime.split(':').map(Number);
         const startTimeVal = startHours * 60 + startMinutes;
 
-        // If current time is LESS than start time, do nothing
-        if (currentTimeVal < startTimeVal) {
-            console.log(`⏳ Too early. Current (Baku): ${String(currentHours).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}, Start: ${startTime}`);
-            return;
-        }
+        // "Too early" check removed as per user request
+        // The system will now mark absent students whenever this job runs, 
+        // regardless of the defined lesson start time.
 
         const todayStr = getTodayDateString(); // Baku date
         const timeStr = `${String(currentHours).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}`; // Baku time
