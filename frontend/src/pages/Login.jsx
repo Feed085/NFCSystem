@@ -111,7 +111,19 @@ const Login = () => {
                         {isStudent ? 'Tələbə Girişi' : 'Admin Girişi'}
                     </h2>
 
-                    {error && <div style={{ color: 'var(--error)', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
+                    {/* Fixed height container for error message to prevent layout shift */}
+                    <div style={{ height: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {error && (
+                            <div className="animate-fade-in" style={{
+                                color: 'var(--error)',
+                                fontSize: '0.85rem',
+                                fontWeight: 500,
+                                textShadow: '0 0 10px rgba(255, 49, 49, 0.2)'
+                            }}>
+                                {error}
+                            </div>
+                        )}
+                    </div>
 
                     <form key={isStudent ? 'student-form' : 'admin-form'} onSubmit={handleSubmit} style={{
                         animation: 'slideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
