@@ -8,6 +8,7 @@ const Dashboard = () => {
     const [showDeleteStudent, setShowDeleteStudent] = useState(false);
 
     const [studentName, setStudentName] = useState('');
+    const [courseGroup, setCourseGroup] = useState(''); // NEW
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [nfcUid, setNfcUid] = useState('');
@@ -95,7 +96,7 @@ const Dashboard = () => {
         if (!studentName || !username || !password || !nfcUid) return alert('Bütün xanaları doldurun');
         try {
             // ✅ backend: POST /api/students
-            await axios.post('/api/students', { name: studentName, username, password, nfcUid });
+            await axios.post('/api/students', { name: studentName, courseGroup, username, password, nfcUid });
             setShowAddStudent(false);
             resetForm();
         } catch (err) {
@@ -118,6 +119,7 @@ const Dashboard = () => {
 
     const resetForm = () => {
         setStudentName('');
+        setCourseGroup('');
         setUsername('');
         setPassword('');
         setNfcUid('');
@@ -195,6 +197,7 @@ const Dashboard = () => {
                         <h2 style={{ marginBottom: '1.5rem' }}>➕ Yeni Tələbə</h2>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
                             <input className="input-field" placeholder="Ad Soyad" value={studentName} onChange={e => setStudentName(e.target.value)} />
+                            <input className="input-field" placeholder="Kurs / Qrup" value={courseGroup} onChange={e => setCourseGroup(e.target.value)} />
                             <input className="input-field" placeholder="İstifadəçi Adı" value={username} onChange={e => setUsername(e.target.value)} />
                             <input className="input-field" type="password" placeholder="Şifrə" value={password} onChange={e => setPassword(e.target.value)} />
                             <button className={`btn ${isReadingNfc ? 'nfc-reading' : ''}`} onClick={startNfcRead} style={{ height: '55px' }}>{isReadingNfc ? '📡 NFC Gözlənilir...' : '📡 NFC Oxut'}</button>

@@ -165,7 +165,7 @@ const StudentDashboard = () => {
 
                         <div className="glass" style={{ padding: '1.5rem', borderRadius: '24px', background: 'rgba(255, 255, 255, 0.02)' }}>
                             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', letterSpacing: '1px' }}>KURS / QRUP</div>
-                            <div style={{ fontSize: '1.2rem', fontWeight: 600 }}>İnformasiya Texnologiyaları</div>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 600 }}>{user.courseGroup || '-'}</div>
                         </div>
 
                         <div style={{ marginTop: '1rem', padding: '1.5rem', borderRadius: '24px', background: 'linear-gradient(135deg, rgba(0, 243, 255, 0.1), rgba(255, 0, 255, 0.1))', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>

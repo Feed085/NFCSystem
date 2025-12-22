@@ -76,7 +76,8 @@ app.post('/api/student/login', async (req, res) => {
                 studentId: studentAuth.studentId,
                 name: studentAuth.name,
                 nfcUid: studentAuth.nfcUid,
-                username: studentAuth.username
+                username: studentAuth.username,
+                courseGroup: studentAuth.courseGroup
             }
         });
 
@@ -99,7 +100,8 @@ app.get('/api/student/me', authenticateToken, async (req, res) => {
         res.json({
             user: {
                 name: studentAuth.name,
-                nfcUid: studentAuth.nfcUid
+                nfcUid: studentAuth.nfcUid,
+                courseGroup: studentAuth.courseGroup
             },
             history: myHistory
         });
@@ -195,21 +197,6 @@ app.get('/api/nfc/latest', (req, res) => {
     res.json({ uid: lastNfcUid });
 });
 
-/* ================= GET RANDOM STUDENT (FOR SIMULATION) ================= */
-app.get('/api/students/random', async (req, res) => {
-    try {
-        const student = await Student.findOne();
-        if (student) {
-            res.json({ success: true, uid: student.nfcData });
-        } else {
-            res.json({ success: false, message: 'Heç bir tələbə tapılmadı' });
-        }
-    } catch (err) {
-        console.error('Random student error:', err);
-        res.status(500).json({ success: false });
-    }
-});
-
 /* ================= ADD STUDENT (UPDATED) ================= */
 app.post('/api/students', async (req, res) => {
     const { name, nfcUid, username, password } = req.body;
@@ -249,7 +236,8 @@ app.post('/api/students', async (req, res) => {
             name: name,
             username: username,
             password: hashedPassword,
-            nfcUid: nfcUid
+            nfcUid: nfcUid,
+            courseGroup: req.body.courseGroup || ''
         });
         await newAuth.save();
 

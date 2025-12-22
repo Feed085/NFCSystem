@@ -23,6 +23,11 @@ const studentAuthSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    courseGroup: {
+        type: String,
+        required: false,
+        default: ''
+    },
     createdAt: {
         type: Date,
         default: Date.now
