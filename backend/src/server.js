@@ -195,6 +195,21 @@ app.get('/api/nfc/latest', (req, res) => {
     res.json({ uid: lastNfcUid });
 });
 
+/* ================= GET RANDOM STUDENT (FOR SIMULATION) ================= */
+app.get('/api/students/random', async (req, res) => {
+    try {
+        const student = await Student.findOne();
+        if (student) {
+            res.json({ success: true, uid: student.nfcData });
+        } else {
+            res.json({ success: false, message: 'Heç bir tələbə tapılmadı' });
+        }
+    } catch (err) {
+        console.error('Random student error:', err);
+        res.status(500).json({ success: false });
+    }
+});
+
 /* ================= ADD STUDENT (UPDATED) ================= */
 app.post('/api/students', async (req, res) => {
     const { name, nfcUid, username, password } = req.body;
