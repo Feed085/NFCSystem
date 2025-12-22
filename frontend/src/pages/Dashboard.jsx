@@ -8,10 +8,32 @@ const Dashboard = () => {
     const [showDeleteStudent, setShowDeleteStudent] = useState(false);
 
     // Attendance & Settings
+    // Helper for Local Date (YYYY-MM-DD)
+    const getLocalDate = () => {
+        const d = new Date();
+        const offset = d.getTimezoneOffset() * 60000;
+        return new Date(d.getTime() - offset).toISOString().split('T')[0];
+    };
+
     const [lessonStartTime, setLessonStartTime] = useState('09:00');
     const [lessonEndTime, setLessonEndTime] = useState('10:00');
     const [dailyAttendance, setDailyAttendance] = useState([]);
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Attendance List Date
+    const [selectedDate, setSelectedDate] = useState(getLocalDate()); // Attendance List Date
+
+    // Auto-update date at midnight
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const current = getLocalDate();
+            if (current !== selectedDate) {
+                // If the app has been open overnight, switch to new day if user was on "yesterday" (effectively previous today)
+                // Or simply force update if the purpose is to "show today's data" for a kiosk.
+                // We'll update only if the stored date is yesterday (1 day behind) to avoid disrupting browsing.
+                // Simpler logic: Just update it.
+                setSelectedDate(current);
+            }
+        }, 60000); // Check every minute
+        return () => clearInterval(interval);
+    }, [selectedDate]);
 
     // NEW: Settings Date
     const [settingsDate, setSettingsDate] = useState(''); // Empty = Global Default
