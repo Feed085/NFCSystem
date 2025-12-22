@@ -39,6 +39,15 @@ const Dashboard = () => {
     const [settingsDate, setSettingsDate] = useState(''); // Empty = Global Default
     const [isCustomSchedule, setIsCustomSchedule] = useState(false);
 
+    useEffect(() => {
+        if (showAddStudent || showDeleteStudent) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'auto';
+        }
+        return () => { document.body.style.overflow = 'auto'; };
+    }, [showAddStudent, showDeleteStudent]);
+
     const [studentName, setStudentName] = useState('');
     const [courseGroup, setCourseGroup] = useState(''); // NEW
     const [username, setUsername] = useState('');
@@ -418,12 +427,16 @@ const Dashboard = () => {
                     className="modal-backdrop"
                     onClick={() => setShowAddStudent(false)}
                     style={{
-                        position: 'absolute',
+                        position: 'fixed',
                         top: 0,
                         left: 0,
-                        width: '100%',
-                        height: '100%',
-                        background: 'rgba(0,0,0,0.7)',
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0,0,0,0.8)',
+                        backdropFilter: 'blur(8px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         zIndex: 9999
                     }}
                 >
@@ -431,16 +444,12 @@ const Dashboard = () => {
                         className="glass"
                         onClick={e => e.stopPropagation()}
                         style={{
-                            position: 'absolute',
-                            top: '50vh',              // 🔥 DİNAMİK ORTA
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-
                             width: '500px',
                             padding: '3rem',
                             background: 'var(--bg-dark)',
                             border: '1px solid var(--primary)',
-                            boxShadow: '0 0 50px rgba(0,243,255,0.2)'
+                            boxShadow: '0 0 50px rgba(0,243,255,0.2)',
+                            borderRadius: '32px'
                         }}
                     >
                         <h2 style={{ marginBottom: '1.5rem', fontSize: '1.8rem' }}>
@@ -449,20 +458,20 @@ const Dashboard = () => {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
                             <input className="input-field" placeholder="Ad Soyad"
-                                   value={studentName}
-                                   onChange={e => setStudentName(e.target.value)}
+                                value={studentName}
+                                onChange={e => setStudentName(e.target.value)}
                             />
                             <input className="input-field" placeholder="Kurs / Qrup"
-                                   value={courseGroup}
-                                   onChange={e => setCourseGroup(e.target.value)}
+                                value={courseGroup}
+                                onChange={e => setCourseGroup(e.target.value)}
                             />
                             <input className="input-field" placeholder="İstifadəçi Adı"
-                                   value={username}
-                                   onChange={e => setUsername(e.target.value)}
+                                value={username}
+                                onChange={e => setUsername(e.target.value)}
                             />
                             <input className="input-field" type="password" placeholder="Şifrə"
-                                   value={password}
-                                   onChange={e => setPassword(e.target.value)}
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
                             />
 
                             <button
@@ -517,12 +526,16 @@ const Dashboard = () => {
                     className="modal-backdrop"
                     onClick={() => setShowDeleteStudent(false)}
                     style={{
-                        position: 'absolute',
+                        position: 'fixed',
                         top: 0,
                         left: 0,
-                        width: '100%',
-                        height: '100%',
-                        background: 'rgba(0,0,0,0.7)',
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0,0,0,0.8)',
+                        backdropFilter: 'blur(8px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         zIndex: 9999
                     }}
                 >
@@ -530,16 +543,12 @@ const Dashboard = () => {
                         className="glass"
                         onClick={e => e.stopPropagation()}
                         style={{
-                            position: 'absolute',
-                            top: '50vh',              // 🔥 DİNAMİK ORTA
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-
                             width: '500px',
                             padding: '3rem',
                             background: 'var(--bg-dark)',
                             border: '1px solid var(--error)',
-                            boxShadow: '0 0 50px rgba(255,49,49,0.2)'
+                            boxShadow: '0 0 50px rgba(255,49,49,0.2)',
+                            borderRadius: '32px'
                         }}
                     >
                         <h2 style={{ marginBottom: '1.5rem', fontSize: '1.8rem' }}>
