@@ -52,16 +52,14 @@ const checkAttendance = async () => {
         if (timeStr < startTime) {
             console.log(`⏳ Lesson hasn't started yet (${timeStr} < ${startTime}). Waiting...`);
 
-            // NEW: If time was changed to later, remove previously auto-marked 'absent' records
-            // This effectively "resets" the day to waiting mode.
+            // NEW: If time was changed to later, remove ALL records for today (absent, present, late)
+            // This effectively "resets" the day to waiting mode as requested.
             const deleted = await Attendance.deleteMany({
-                date: todayStr,
-                status: 'absent',
-                autoMarked: true
+                date: todayStr
             });
 
             if (deleted.deletedCount > 0) {
-                console.log(`🔄 Resetting ${deleted.deletedCount} absent records due to schedule change.`);
+                console.log(`🔄 Resetting ${deleted.deletedCount} records (ALL statuses) due to schedule change/wait mode.`);
             }
 
             return; // EXIT: Do not mark absent yet
