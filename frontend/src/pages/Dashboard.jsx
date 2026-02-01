@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -109,7 +109,17 @@ const Dashboard = () => {
         }
     };
 
-    // Updated NFC Read Handler with TOGGLE logic
+    // NFC Interval Ref to correctly manage clearing
+    const nfcIntervalRef = useRef(null);
+
+    // Cleanup interval on unmount or when modal closes
+    useEffect(() => {
+        return () => {
+            if (nfcIntervalRef.current) clearInterval(nfcIntervalRef.current);
+        };
+    }, []);
+
+    // Updated NFC Read Handler
     const startNfcRead = async () => {
         // If already reading, STOP it
         if (isReadingNfc) {
@@ -117,7 +127,11 @@ const Dashboard = () => {
                 // We send a cancel request to backend
                 await axios.post('/api/nfc/cancel');
                 setIsReadingNfc(false);
-                setNfcUid(''); // Clear partial data
+                setNfcUid('');
+                if (nfcIntervalRef.current) {
+                    clearInterval(nfcIntervalRef.current);
+                    nfcIntervalRef.current = null;
+                }
             } catch (error) {
                 console.error('Stop error', error);
             }
@@ -131,20 +145,29 @@ const Dashboard = () => {
             const endpoint = nfcMode === 'add' ? '/api/nfc/start-wait' : '/api/nfc/start-delete';
             await axios.post(endpoint);
 
+            // Clear any existing interval
+            if (nfcIntervalRef.current) clearInterval(nfcIntervalRef.current);
+
+            const startedAt = Date.now();
+
             // Polling for NFC data
-            const pollInterval = setInterval(async () => {
+            nfcIntervalRef.current = setInterval(async () => {
                 try {
-                    // Check if cancelled locally
-                    if (!isReadingNfc) {
-                        clearInterval(pollInterval);
-                        return;
+                    const res = await axios.get('/api/nfc/latest');
+                    const uid = res.data?.uid;
+
+                    if (uid) {
+                        setNfcUid(uid);
+                        setIsReadingNfc(false);
+                        clearInterval(nfcIntervalRef.current);
+                        nfcIntervalRef.current = null;
                     }
 
-                    const res = await axios.get('/api/nfc/latest');
-                    if (res.data.uid) {
-                        setNfcUid(res.data.uid);
+                    // 60 saniye timeout (artırıldı)
+                    if (Date.now() - startedAt > 60000) {
                         setIsReadingNfc(false);
-                        clearInterval(pollInterval);
+                        clearInterval(nfcIntervalRef.current);
+                        nfcIntervalRef.current = null;
                     }
                 } catch (e) {
                     // ignore errors during poll
